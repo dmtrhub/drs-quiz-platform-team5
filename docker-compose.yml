@@ -1,89 +1,67 @@
 version: '3.8'
 
 services:
-  # PostgreSQL Database 1 (DB1 iz zadatka - za korisnike)
-  db1:
+  # PostgreSQL Database (DB1)
+  postgres:
     image: postgres:15-alpine
-    container_name: quiz_db1
-    restart: unless-stopped
+    container_name: quiz-postgres
     environment:
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: quiz_db1
+      POSTGRES_PASSWORD: user
+      POSTGRES_DB: quiz_users
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    networks:
+      - quiz-network
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 10s
       timeout: 5s
       retries: 5
-    networks:
-      - quiz-network
 
-  # Flask Backend Server
-  backend:
-    build: ./backend
-    container_name: quiz_backend
-    restart: unless-stopped
-    depends_on:
-      db1:
-        condition: service_healthy
+  # MongoDB Database (DB2)
+  mongodb:
+    image: mongo:7
+    container_name: quiz-mongodb
     environment:
-      # Flask
-      FLASK_ENV: development
-      FLASK_APP: run.py
-      FLASK_DEBUG: 1
-
-      # Database
-      DATABASE_URL: postgresql://postgres:postgres@db1:5432/quiz_db1
-
-      # Security
-      SECRET_KEY: dev-secret-key-change-in-production
-      JWT_SECRET_KEY: jwt-secret-key-change-in-production
-
-      # Email (suppressed for development)
-      MAIL_SUPPRESS_SEND: "true"
-      MAIL_SERVER: smtp.mailtrap.io
-      MAIL_PORT: 2525
-      MAIL_USERNAME: ""
-      MAIL_PASSWORD: ""
-      MAIL_USE_TLS: "true"
-      MAIL_DEFAULT_SENDER: noreply@quizplatform.com
-
-      # Rate limiting
-      LOGIN_ATTEMPT_LIMIT: 3
-      LOGIN_BLOCK_TIME_MINUTES: 1
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: admin
+      MONGO_INITDB_DATABASE: quiz_db
     ports:
-      - "5000:5000"
+      - "27017:27017"
     volumes:
-      - ./backend:/app
-      - uploads_volume:/app/uploads
+      - mongodb_data:/data/db
     networks:
       - quiz-network
-    # Seed ručno: docker-compose exec backend python seed.py
-    command: python run.py
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
-  # Adminer - web interface za bazu
-  adminer:
-    image: adminer
-    container_name: quiz_adminer
-    restart: unless-stopped
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: quiz-redis
     ports:
-      - "8080:8080"
-    depends_on:
-      - db1
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
     networks:
       - quiz-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
 networks:
   quiz-network:
     driver: bridge
-    name: quiz-network
 
 volumes:
   postgres_data:
-    driver: local
-  uploads_volume:
-    driver: local
+  mongodb_data:
+  redis_data:
