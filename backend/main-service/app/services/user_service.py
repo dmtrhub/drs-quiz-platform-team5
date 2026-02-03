@@ -68,46 +68,31 @@ class UserService:
         return user    
 
     @staticmethod
-    def update_user_role(user_id, new_role, admin_id):
-        """Update user role (admin only)"""
-        valid_roles = ['player', 'moderator', 'admin']
+    def change_user_role(user_id, new_role, admin_id):
+        """Change user role (admin only)"""
+        user = User.query.get(user_id)
+        if not user:
+            raise ValueError("User not found")
 
-        if new_role not in valid_roles:
-            return False, 'Nevažeća uloga'
+        if new_role not in ['PLAYER', 'MODERATOR', 'ADMIN']:
+            raise ValueError("Invalid role")
 
-        user = User.query.get(int(user_id))
-        admin = User.query.get(int(admin_id))
+        old_role = user.role.value
+        user.role = RoleEnum(new_role)
+        user.updated_at = datetime.utcnow()
 
-        if not user or not admin:
-            return False, 'Korisnik ili administrator nisu pronađeni'
+        audit_log = AuditLog(user_id=admin_id,
+                             action=f'Changed role of user {user_id}',
+                             details=f'Changed from {old_role} to {new_role}')
 
-        if admin.role != 'admin':
-            return False, 'Samo administrator može mijenjati uloge'
+        db.session.add(audit_log)
+        db.session.commit()
 
-        old_role = user.role
+        EmailService.send_role_change_email(user, old_role, new_role) 
+    
+        return user
 
-        # If role is the same, return success
-        if old_role == new_role:
-            return True, 'Uloga je već postavljena'
-
-        user.role = new_role
-
-        try:
-            db.session.commit()
-
-            # Send email about role change
-            try:
-                EmailService.send_role_change_email(user, old_role, new_role)
-            except Exception as e:
-                current_app.logger.error(f"Greška pri slanju email-a za promjenu uloge: {str(e)}")
-
-            return True, f'Uloga uspješno promijenjena iz {old_role} u {new_role}'
-
-        except Exception as e:
-            db.session.rollback()
-            current_app.logger.error(f"Greška pri promjeni uloge: {str(e)}")
-            return False, 'Greška pri čuvanju podataka'
-
+        
     @staticmethod
     def delete_user(user_id, admin_id):
         """Delete user account (admin only) - soft delete"""
