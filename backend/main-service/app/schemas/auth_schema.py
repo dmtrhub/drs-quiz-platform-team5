@@ -1,69 +1,36 @@
-from pydantic import BaseModel, Field
-from typing import Optional
-from datetime import datetime
+from marshmallow import Schema, fields, validates, ValidationError, EXCLUDE
+from app.utils.validators import validate_password_strength, validate_email
+from app.schemas.user_schema import UserResponseSchema
 
-from .user_dto import UserResponseDTO
+class RegisterSchema(Schema):
+    email = fields.Email(required=True)
+    password = fields.String(required=True)
+    first_name = fields.String(required=True)
+    last_name = fields.String(required=True)
+    birth_date = fields.Date(required=False, allow_none=True)
+    gender = fields.String(required=False, allow_none=True)
+    country = fields.String(required=False, allow_none=True)
+    street = fields.String(required=False, allow_none=True)
+    street_number = fields.String(required=False, allow_none=True)
+    profile_image = fields.String(required=False, allow_none=True)
 
+    @validates('password')
+    def validate_password(self, value):
+        is_valid, message = validate_password_strength(value)
+        if not is_valid:
+            raise ValidationError(message)
 
-class BaseDTO(BaseModel):
-    """Base DTO class"""
+    @validates('email')
+    def validate_email(self, value):
+        is_valid, message = validate_email(value)
+        if not is_valid:
+            raise ValidationError(message)
 
-    class Config:
-        from_attributes = True
-        json_encoders = {
-            datetime: lambda v: v.isoformat() if v else None
-        }
+class LoginSchema(Schema):
+    email = fields.Email(required=True)
+    password = fields.String(required=True)
 
-
-class TokenDTO(BaseDTO):
-    """DTO for authentication tokens"""
-    access_token: str = Field(..., description="Access token for API calls")
-    refresh_token: str = Field(..., description="Refresh token for getting new access token")
-    token_type: str = Field(default="bearer", description="Token type")
-    expires_in: int = Field(default=3600, description="Token expiration in seconds")
-
-
-class AuthResponseDTO(BaseDTO):
-    """DTO for authentication response"""
-    message: str = Field(..., description="Response message")
-    user: UserResponseDTO = Field(..., description="User data")
-    tokens: TokenDTO = Field(..., description="Authentication tokens")
-
-
-class RefreshTokenDTO(BaseDTO):
-    """DTO for refresh token response"""
-    access_token: str = Field(..., description="New access token")
-
-
-class LogoutResponseDTO(BaseDTO):
-    """DTO for logout response"""
-    message: str = Field(..., description="Logout message")
-
-
-class ProfileImageResponseDTO(BaseDTO):
-    """DTO for profile image upload response"""
-    message: str = Field(..., description="Response message")
-    image_url: str = Field(..., description="URL to the uploaded image")
-    filename: str = Field(..., description="Name of the uploaded file")
-
-
-class LoginAttemptDTO(BaseDTO):
-    """DTO for login attempt records"""
-    id: int
-    email: str
-    ip_address: Optional[str] = None
-    user_agent: Optional[str] = None
-    success: bool
-    attempted_at: datetime
-
-    @classmethod
-    def from_login_attempt_model(cls, attempt):
-        """Create DTO from LoginAttempt model"""
-        return cls(
-            id=attempt.id,
-            email=attempt.email,
-            ip_address=attempt.ip_address,
-            user_agent=attempt.user_agent,
-            success=attempt.success,
-            attempted_at=attempt.attempted_at
-        )
+class AuthResponseSchema(Schema):
+    message = fields.Str()
+    access_token = fields.Str(required=False)
+    user = fields.Nested(UserResponseSchema)
