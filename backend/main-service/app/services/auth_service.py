@@ -75,8 +75,19 @@ class AuthService:
         return False
 
     @staticmethod
-    def login_user(email, password):
-        """User login with rate limiting"""
+    def block_user(email):
+        """Block user for a duration"""
+        redis_client = current_app.redis_client
+        blocked_key = AuthService.BLOCKED_KEY.format(email)
+        redis_client.setex(
+            blocked_key,
+            AuthService.BLOCK_DURATION_MINUTES * 60,
+            "blocked"
+        )
+
+    @staticmethod
+    def reset_failed_attempts(email):
+        """Reset failed login attempts after successful login"""
         redis_client = current_app.redis_client
         failed_key = AuthService.FAILED_LOGIN_KEY.format(email)
         redis_client.delete(failed_key)
