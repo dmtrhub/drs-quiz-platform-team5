@@ -7,6 +7,10 @@ from flask import current_app
 from datetime import datetime, timedelta
 
 class AuthService:
+    FAILED_LOGIN_KEY = "failed_login:{}"
+    BLOCKED_KEY = "blocked:{}"
+    MAX_FAILED_ATTEMPTS = 3
+    BLOCK_DURATION_MINUTES = 1 
     @staticmethod
     def register_user(user_data):
         """Register new user"""
