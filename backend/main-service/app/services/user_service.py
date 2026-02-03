@@ -23,34 +23,49 @@ class UserService:
         return users
 
     @staticmethod
-    def update_user_profile(user_id, update_data):
+    def update_user(user_id, data):
         """Update user profile"""
-        user = User.query.get(int(user_id))
+        user = User.query.get(user_id)
         if not user:
-            return None, {'error': 'Korisnik nije pronađen'}
+            raise ValueError("User not found")
 
-        # Update allowed fields
-        allowed_fields = ['first_name', 'last_name', 'date_of_birth', 'gender',
-                          'country', 'street', 'street_number']
+            if 'new_password' in update_data and update_data['new_password']:
+                if 'current_password' not in update_data or not update_data['current_password']:
+                    raise ValueError("Current password is required to change password")
 
-        for field in allowed_fields:
-            if field in update_data:
-                if field == 'date_of_birth':
-                    try:
-                        setattr(user, field, datetime.strptime(update_data[field], '%Y-%m-%d').date())
-                    except ValueError:
-                        return None, {field: 'Nevažeći format datuma. Koristite YYYY-MM-DD'}
-                else:
-                    setattr(user, field,
-                            update_data[field].strip() if isinstance(update_data[field], str) else update_data[field])
+            if not verify_password(data['current_password'], user.password_hash):
+                raise ValueError("Current password is incorrect")
 
-        try:
-            db.session.commit()
-            return user, None
-        except Exception as e:
-            db.session.rollback()
-            current_app.logger.error(f"Greška pri ažuriranju profila: {str(e)}")
-            return None, {'database': str(e)}
+            user.password_hash = hash_password(data['new_password'])
+        
+        if 'first_name' in data:
+            user.first_name = data['first_name']
+        if 'last_name' in data:
+            user.last_name = data['last_name']
+        if 'birth_date' in data:
+            if isistance(data['birth_date'], str):
+                try: 
+                    user.birth_date = datetime.strptime(data['birth_date'], '%Y-%m-%d').date()
+                except ValueError:
+                      raise ValueError("Invalid birth date format. Use YYYY-MM-DD")
+            else:
+                user.birth_date = data['birth_date']
+
+        if 'gender' in data:
+            user.gender = data['gender']
+        if 'country' in data:
+            user.country = data['country']
+        if 'street' in data:
+            user.street = data['street']
+        if 'street_number' in data:
+            user.street_number = data['street_number']
+        if 'profile_image' in data:
+            user.profile_image = data['profile_image']
+
+        user.updated_at = datetime.utcnow()
+        db.session.commit()
+
+        return user    
 
     @staticmethod
     def update_user_role(user_id, new_role, admin_id):
