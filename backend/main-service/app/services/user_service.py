@@ -9,34 +9,12 @@ from datetime import datetime, date
 class UserService:
     @staticmethod
     def get_all_users(limit=50, offset=0, role=None, search=None, active_only=True):
-        """Get all users with pagination and filtering"""
-        query = User.query
+        """Get all user by ID"""
+        user = User.query.get(user_id)
+        if not user:
+            raise ValueError("User not found")
 
-        if active_only:
-            query = query.filter_by(is_active=True)
-
-        if role:
-            query = query.filter_by(role=role)
-
-        if search:
-            search_pattern = f'%{search}%'
-            query = query.filter(
-                db.or_(
-                    User.first_name.ilike(search_pattern),
-                    User.last_name.ilike(search_pattern),
-                    User.email.ilike(search_pattern)
-                )
-            )
-
-        total = query.count()
-        users = query.order_by(User.created_at.desc()).limit(limit).offset(offset).all()
-
-        return {
-            'users': [user.to_dict() for user in users],
-            'total': total,
-            'limit': limit,
-            'offset': offset
-        }
+        return user
 
     @staticmethod
     def update_user_profile(user_id, update_data):
