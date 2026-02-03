@@ -1,11 +1,9 @@
-from datetime import datetime, timedelta
-from flask import current_app
-from sqlalchemy import func
-import pytz
-
-from ..models.user import User
-from .. import db
-from ..utils.email_service import EmailService
+from app import db
+from app.models.user import User, RoleEnum
+from app.models.audit_log import AuditLog
+from app.services.email_service import EmailService
+from app.utils.password_utils import hash_password, verify_password
+from datetime import datetime, date
 
 
 class UserService:
