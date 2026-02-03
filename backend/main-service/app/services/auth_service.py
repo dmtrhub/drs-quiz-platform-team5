@@ -39,6 +39,41 @@ class AuthService:
 
             return user
 
+    
+
+    @staticmethod
+    def is_user_blocked(email):
+        """Check if user is blocked due to failed login attempts"""
+        redis_client = current_app.redis_client
+        blocked_key = AuthService.BLOCKED_KEY.format(email)
+        return redis_client.exists(blocked_key)
+
+     @staticmethod
+    def track_failed_login(email, ip_address=None):
+        """Track failed login attempt"""
+        redis_client = current_app.redis_client
+        failed_key = AuthService.FAILED_LOGIN_KEY.format(email)
+
+        failed_count = redis_client.incr(failed_key)
+        redis_client.expire(failed_key, 300) 
+
+        user = User.query.filter_by(email=email).first()
+        login_attempt = LoginAttempt(
+            user_id=user.id if user else None,
+            email=email,
+            success=False,
+            ip_address=ip_address
+        )
+        db.session.add(login_attempt)
+        db.session.commit()
+
+        # Block user if max attempts reached
+        if failed_count >= AuthService.MAX_FAILED_ATTEMPTS:
+            AuthService.block_user(email)
+            return True  
+
+        return False
+
     @staticmethod
     def login_user(email, password):
         """User login with rate limiting"""
@@ -99,36 +134,4 @@ class AuthService:
 
         return user, token
 
-    @staticmethod
-    def get_user_by_id(user_id):
-        """Get user by ID"""
-        try:
-            return User.query.get(int(user_id))
-        except:
-            return None
 
-    @staticmethod
-    def change_password(user_id, current_password, new_password):
-        """Change password"""
-        user = User.query.get(int(user_id))
-
-        if not user:
-            return False, 'Korisnik nije pronađen'
-
-        if not user.check_password(current_password):
-            return False, 'Trenutna lozinka nije tačna'
-
-        # Validate new password
-        if len(new_password) < 8:
-            return False, 'Nova lozinka mora imati najmanje 8 karaktera'
-        if not re.search(r'[A-Z]', new_password):
-            return False, 'Nova lozinka mora imati barem jedno veliko slovo'
-        if not re.search(r'[a-z]', new_password):
-            return False, 'Nova lozinka mora imati barem jedno malo slovo'
-        if not re.search(r'\d', new_password):
-            return False, 'Nova lozinka mora imati barem jedan broj'
-
-        user.set_password(new_password)
-        db.session.commit()
-
-        return True, 'Lozinka uspješno promijenjena'
