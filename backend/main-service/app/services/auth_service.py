@@ -42,97 +42,62 @@ class AuthService:
     @staticmethod
     def login_user(email, password):
         """User login with rate limiting"""
-        try:
-            # Clean input
-            email = email.strip().lower() if email else ''
+        redis_client = current_app.redis_client
+        failed_key = AuthService.FAILED_LOGIN_KEY.format(email)
+        redis_client.delete(failed_key)
 
-            # Log login attempt (initially as failed)
-            attempt = LoginAttempt(
-                email=email,
-                ip_address=request.remote_addr if request else None,
-                user_agent=request.user_agent.string if request and request.user_agent else None,
-                success=False
-            )
-            db.session.add(attempt)
+    @staticmethod
+    def login_user(email, password, ip_address=None):
+        """Login user and return JWT token"""
+        if AuthService.is_user_blocked(email):
+            redis_client = current_app.redis_client
+            blocked_key = AuthService.BLOCKED_KEY.format(email)
+            ttl = redis_client.ttl(blocked_key)
 
-            # Find user
-            user = User.query.filter_by(email=email).first()
-
-            if not user:
-                db.session.commit()
-                return None, {'email': 'Korisnik sa ovim email-om ne postoji'}, None
-
-            # Check if account is active
-            if not user.is_active:
-                db.session.commit()
-                return None, {'account': 'Korisnički nalog je deaktiviran'}, None
-
-            # Check if account is blocked
-            if user.is_login_blocked():
-                blocked_time = user.get_blocked_time_remaining()
-                db.session.commit()
-                return None, {
-                    'account': f'Prijava je blokirana. Pokušajte ponovo za {blocked_time} sekundi.'
-                }, None
-
-            # Verify password
-            if not user.check_password(password):
-                # Increment failed attempts
-                user.failed_login_attempts += 1
-                user.last_failed_login = datetime.now(pytz.UTC)
-
-                # Block after 3 failed attempts (1 minute for testing)
-                if user.failed_login_attempts >= 3:
-                    user.login_blocked_until = datetime.now(pytz.UTC) + timedelta(minutes=1)
-
-                db.session.commit()
-
-                if user.failed_login_attempts >= 3:
-                    return None, {
-                        'account': 'Previše neuspješnih pokušaja. Pristup blokiran na 1 minut.'
-                    }, None
+            if ttl > 0:
+                if ttl < 60:
+                    time_msg = f"{ttl} second(s)"
                 else:
-                    attempts_left = 3 - user.failed_login_attempts
-                    return None, {
-                        'password': f'Pogrešna lozinka. Preostali pokušaji: {attempts_left}'
-                    }, None
+                    minutes = ttl // 60
+                    seconds = ttl % 60
+                    if seconds > 0:
+                        time_msg = f"{minutes} minute(s) and {seconds} second(s)"
+                    else:
+                        time_msg = f"{minutes} minute(s)"
+            else:
+                time_msg = f"{AuthService.BLOCK_DURATION_MINUTES} minute(s)"
 
-            # SUCCESSFUL LOGIN
-            # Reset failed attempts
-            user.reset_failed_logins()
-            # Update login attempt to success
-            attempt.success = True
-            db.session.commit()
+            raise ValueError(f"Account temporarily blocked due to multiple failed login attempts. Try again in {time_msg}.")
 
-            # Create JWT tokens
-            from flask_jwt_extended import create_access_token, create_refresh_token
+        user = User.query.filter_by(email=email).first()
+        if not user:
+            AuthService.track_failed_login(email, ip_address)
+            raise ValueError("Invalid email or password")
 
-            additional_claims = {
-                'role': user.role,
-                'email': user.email,
-                'first_name': user.first_name,
-                'last_name': user.last_name
-            }
+        if not verify_password(password, user.password_hash):
+            is_blocked = AuthService.track_failed_login(email, ip_address)
 
-            access_token = create_access_token(
-                identity=str(user.id),
-                additional_claims=additional_claims
-            )
+            if is_blocked:
+                raise ValueError(f"Account blocked due to multiple failed login attempts. Try again in {AuthService.BLOCK_DURATION_MINUTES} minute(s).")
+            else:
+                raise ValueError("Invalid email or password")
 
-            refresh_token = create_refresh_token(
-                identity=str(user.id),
-                additional_claims=additional_claims
-            )
+        # Reset failed attempts
+        AuthService.reset_failed_attempts(email)
 
-            return user, None, {
-                'access_token': access_token,
-                'refresh_token': refresh_token
-            }
+        # Log successful attempt
+        login_attempt = LoginAttempt(
+            user_id=user.id,
+            email=email,
+            success=True,
+            ip_address=ip_address
+        )
+        db.session.add(login_attempt)
+        db.session.commit()
 
-        except Exception as e:
-            db.session.rollback()
-            current_app.logger.error(f"Greška pri prijavi: {str(e)}")
-            return None, {'error': str(e)}, None
+        token = generate_token(user.id, user.email, user.role.value)
+
+        return user, token
 
     @staticmethod
     def get_user_by_id(user_id):
