@@ -68,6 +68,18 @@ class UserService:
         return user    
 
     @staticmethod
+    def delete_user(user_id, admin_id):
+        """Delete user account (admin only) - soft delete"""
+        user = User.query.get(int(user_id))
+        if not user:
+            raise ValueError("User not found")
+
+        db.session.delete(user)
+        db.session.commit()
+
+        return True
+
+    @staticmethod
     def change_user_role(user_id, new_role, admin_id):
         """Change user role (admin only)"""
         user = User.query.get(user_id)
@@ -92,119 +104,5 @@ class UserService:
     
         return user
 
-        
-    @staticmethod
-    def delete_user(user_id, admin_id):
-        """Delete user account (admin only) - soft delete"""
-        user = User.query.get(int(user_id))
-        admin = User.query.get(int(admin_id))
 
-        if not user or not admin:
-            return False, 'Korisnik ili administrator nisu pronađeni'
 
-        if admin.role != 'admin':
-            return False, 'Samo administrator može brisati naloge'
-
-        if user.id == admin.id:
-            return False, 'Ne možete obrisati svoj nalog'
-
-        # Soft delete - deactivate user
-        user.is_active = False
-        # Modify email to prevent re-registration
-        user.email = f"{user.email}_deleted_{datetime.now().timestamp()}"
-
-        try:
-            db.session.commit()
-            return True, 'Korisnički nalog uspješno deaktiviran'
-
-        except Exception as e:
-            db.session.rollback()
-            current_app.logger.error(f"Greška pri brisanju korisnika: {str(e)}")
-            return False, 'Greška pri brisanju podataka'
-
-    @staticmethod
-    def activate_user(user_id, admin_id):
-        """Activate user account (admin only)"""
-        user = User.query.get(int(user_id))
-        admin = User.query.get(int(admin_id))
-
-        if not user or not admin:
-            return False, 'Korisnik ili administrator nisu pronađeni'
-
-        if admin.role != 'admin':
-            return False, 'Samo administrator može aktivirati naloge'
-
-        user.is_active = True
-
-        try:
-            db.session.commit()
-            return True, 'Korisnički nalog uspješno aktiviran'
-        except Exception as e:
-            db.session.rollback()
-            current_app.logger.error(f"Greška pri aktiviranju korisnika: {str(e)}")
-            return False, 'Greška pri aktiviranju naloga'
-
-    @staticmethod
-    def get_user_stats():
-        """Get user statistics"""
-        from sqlalchemy import func
-        from datetime import datetime, timedelta
-        import pytz
-
-        # Users by role
-        role_stats = db.session.query(
-            User.role,
-            func.count(User.id)
-        ).filter(User.is_active == True).group_by(User.role).all()
-
-        # Total users
-        total_users = User.query.filter_by(is_active=True).count()
-
-        # New users in last 30 days
-        thirty_days_ago = datetime.now(pytz.UTC) - timedelta(days=30)
-        new_users = User.query.filter(
-            User.created_at >= thirty_days_ago,
-            User.is_active == True
-        ).count()
-
-        # Blocked users
-        all_active_users = User.query.filter_by(is_active=True).all()
-        blocked_users = 0
-        for user in all_active_users:
-            if user.is_login_blocked():
-                blocked_users += 1
-
-        return {
-            'total_users': total_users,
-            'new_users_last_30_days': new_users,
-            'blocked_users': blocked_users,
-            'roles': {role: count for role, count in role_stats}
-        }
-
-    @staticmethod
-    def get_blocked_users():
-        """Get list of blocked users"""
-        all_users = User.query.filter_by(is_active=True).all()
-        blocked_users = [
-            user for user in all_users
-            if user.is_login_blocked()
-        ]
-
-        return blocked_users
-
-    @staticmethod
-    def unblock_user(user_id, admin_id):
-        """Unblock user (admin only)"""
-        user = User.query.get(int(user_id))
-        admin = User.query.get(int(admin_id))
-
-        if not user or not admin:
-            return False, 'Korisnik ili administrator nisu pronađeni'
-
-        if admin.role != 'admin':
-            return False, 'Samo administrator može deblokirati korisnike'
-
-        user.reset_failed_logins()
-        db.session.commit()
-
-        return True, 'Korisnik uspešno deblokiran'
