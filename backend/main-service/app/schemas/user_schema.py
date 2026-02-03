@@ -14,6 +14,18 @@ class RegisterSchema(Schema):
     street_number = fields.String(required=False, allow_none=True)
     profile_image = fields.String(required=False, allow_none=True)
 
+    @validates('password')
+    def validate_password(self, value):
+        is_valid, message = validate_password_strength(value)
+        if not is_valid:
+            raise ValidationError(message)
+
+    @validates('email')
+    def validate_email(self, value):
+        is_valid, message = validate_email(value)
+        if not is_valid:
+            raise ValidationError(message)
+
 class LoginSchema(Schema):
     email = fields.Email(required=True)
     password = fields.String(required=True)
