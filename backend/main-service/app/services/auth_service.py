@@ -12,92 +12,32 @@ class AuthService:
     MAX_FAILED_ATTEMPTS = 3
     BLOCK_DURATION_MINUTES = 1 
     @staticmethod
-    def register_user(user_data):
+    def register_user(email, password, first_name, last_name, **kwargs):
         """Register new user"""
-        try:
-            # Validate required fields
-            errors = {}
+    existing_user = User.query.filter_by(email=email).first()
+        if existing_user:
+            raise ValueError("Email already registered")
 
-            # Check all required fields
-            required_fields = ['first_name', 'last_name', 'email', 'password',
-                               'date_of_birth', 'gender', 'country', 'street', 'street_number']
-
-            for field in required_fields:
-                if not user_data.get(field):
-                    errors[field] = f'{field.replace("_", " ").title()} je obavezno polje'
-
-            # Email validation
-            email = user_data.get('email', '').strip().lower()
-            if email and not re.match(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$', email):
-                errors['email'] = 'Nevažeći format email-a'
-
-            # Password validation
-            password = user_data.get('password', '')
-            if password:
-                if len(password) < 8:
-                    errors['password'] = 'Lozinka mora imati najmanje 8 karaktera'
-                if not re.search(r'[A-Z]', password):
-                    errors['password'] = 'Lozinka mora imati barem jedno veliko slovo'
-                if not re.search(r'[a-z]', password):
-                    errors['password'] = 'Lozinka mora imati barem jedno malo slovo'
-                if not re.search(r'\d', password):
-                    errors['password'] = 'Lozinka mora imati barem jedan broj'
-
-            if errors:
-                return None, errors
-
-            # Check if email already exists
-            if User.query.filter_by(email=email).first():
-                return None, {'email': 'Email adresa već postoji u sistemu'}
-
-            # Date validation
-            try:
-                birth_date = datetime.strptime(user_data['date_of_birth'], '%Y-%m-%d').date()
-                today = datetime.now().date()
-                age = today.year - birth_date.year - ((today.month, today.day) < (birth_date.month, birth_date.day))
-
-                if age < 13:
-                    return None, {'date_of_birth': 'Morate imati najmanje 13 godina'}
-                if birth_date > today:
-                    return None, {'date_of_birth': 'Datum rođenja ne može biti u budućnosti'}
-            except ValueError:
-                return None, {'date_of_birth': 'Nevažeći format datuma. Koristite YYYY-MM-DD'}
+        password_hash = hash_password(password)
 
             # Create new user
             user = User(
-                first_name=user_data['first_name'].strip(),
-                last_name=user_data['last_name'].strip(),
                 email=email,
-                date_of_birth=birth_date,
-                gender=user_data['gender'],
-                country=user_data['country'].strip(),
-                street=user_data['street'].strip(),
-                street_number=str(user_data['street_number']).strip(),
-                role='player'  # Default role
+                password_hash=password_hash,
+                first_name=first_name,
+                last_name=last_name,          
+                birth_date=kwargs.get('birth_date'),
+                gender=kwargs.get('gender'),
+                country=kwargs.get('country' ),
+                street=kwargs.get('street', ''),
+                street_number=str(kwargs.get('street_number')),
+                role=RoleEnum.PLAYER  
             )
-
-            # Hash and store password
-            user.set_password(password)
 
             db.session.add(user)
             db.session.commit()
 
-            # NOW user has an ID
-            print(f"DEBUG: User created with ID: {user.id}")
-
-            # Send welcome email - wrap in try/except so it doesn't break registration
-            try:
-                EmailService.send_welcome_email(user)
-            except Exception as e:
-                current_app.logger.error(f"Greška pri slanju welcome email-a: {str(e)}")
-                # Don't return error, just log it
-
-            return user, None
-
-        except Exception as e:
-            db.session.rollback()
-            current_app.logger.error(f"Greška pri registraciji: {str(e)}")
-            return None, {'error': f'Greška pri čuvanju podataka: {str(e)}'}
+            return user
 
     @staticmethod
     def login_user(email, password):
