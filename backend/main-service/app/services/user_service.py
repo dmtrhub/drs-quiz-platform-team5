@@ -16,6 +16,12 @@ class UserService:
 
         return user
 
+    @staticmethod 
+    def list_all_users():
+        """List all users"""
+        users = User.query.all()
+        return users
+
     @staticmethod
     def update_user_profile(user_id, update_data):
         """Update user profile"""
