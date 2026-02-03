@@ -1,13 +1,10 @@
+from app import db
+from app.models.user import User, RoleEnum
+from app.models.login_attempt import LoginAttempt
+from app.utils.password_utils import hash_password, verify_password
+from app.utils.jwt_utils import generate_token
+from flask import current_app
 from datetime import datetime, timedelta
-from flask import current_app, request
-import bcrypt
-import re
-import pytz
-
-from ..models.user import User, LoginAttempt
-from .. import db
-from ..utils.email_service import EmailService
-
 
 class AuthService:
     @staticmethod
