@@ -1,0 +1,208 @@
+<div class="register-container">
+  <div class="register-card">
+    <h2>Register for Quiz Platform</h2>
+
+    <form (ngSubmit)="onSubmit()" #registerForm="ngForm">
+      <div class="form-group">
+        <label for="first_name">First Name</label>
+        <input
+          type="text"
+          id="first_name"
+          name="first_name"
+          [(ngModel)]="user.first_name"
+          required
+          placeholder="Enter your first name"
+          [disabled]="isLoading"
+          [class.error]="hasFieldError('first_name')">
+        <span class="field-error" *ngIf="hasFieldError('first_name')">
+          {{ getFieldError('first_name') }}
+        </span>
+      </div>
+
+      <div class="form-group">
+        <label for="last_name">Last Name</label>
+        <input
+          type="text"
+          id="last_name"
+          name="last_name"
+          [(ngModel)]="user.last_name"
+          required
+          placeholder="Enter your last name"
+          [disabled]="isLoading"
+          [class.error]="hasFieldError('last_name')">
+        <span class="field-error" *ngIf="hasFieldError('last_name')">
+          {{ getFieldError('last_name') }}
+        </span>
+      </div>
+
+      <div class="form-group">
+        <label for="email">Email</label>
+        <input
+          type="email"
+          id="email"
+          name="email"
+          [(ngModel)]="user.email"
+          required
+          email
+          placeholder="Enter your email"
+          [disabled]="isLoading"
+          [class.error]="hasFieldError('email')">
+        <span class="field-error" *ngIf="hasFieldError('email')">
+          {{ getFieldError('email') }}
+        </span>
+      </div>
+
+      <div class="form-group">
+        <label for="birth_date">Date of Birth</label>
+        <input
+          type="date"
+          id="birth_date"
+          name="birth_date"
+          #birthDateField="ngModel"
+          [(ngModel)]="user.birth_date"
+          required
+          min="1900-01-01"
+          max="2014-12-31"
+          [disabled]="isLoading"
+          [class.error]="hasFieldError('birth_date') || (birthDateField.invalid && birthDateField.touched)">
+        <span class="field-error" *ngIf="hasFieldError('birth_date')">
+          {{ getFieldError('birth_date') }}
+        </span>
+        <span class="field-error" *ngIf="!hasFieldError('birth_date') && birthDateField.invalid && birthDateField.touched">
+          <span *ngIf="birthDateField.errors?.['required']">Date of birth is required</span>
+          <span *ngIf="birthDateField.errors?.['min']">Date of birth must be after January 1, 1900</span>
+          <span *ngIf="birthDateField.errors?.['max']">You must be at least 12 years old (born before 2015)</span>
+        </span>
+      </div>
+
+      <div class="form-group">
+        <label for="gender">Gender</label>
+        <select
+          id="gender"
+          name="gender"
+          [(ngModel)]="user.gender"
+          required
+          [disabled]="isLoading"
+          [class.error]="hasFieldError('gender')">
+          <option value="">Select gender</option>
+          <option value="Male">Male</option>
+          <option value="Female">Female</option>
+        </select>
+        <span class="field-error" *ngIf="hasFieldError('gender')">
+          {{ getFieldError('gender') }}
+        </span>
+      </div>
+
+      <div class="form-group">
+        <label for="country">Country</label>
+        <input
+          type="text"
+          id="country"
+          name="country"
+          [(ngModel)]="user.country"
+          required
+          placeholder="Enter your country"
+          [disabled]="isLoading"
+          [class.error]="hasFieldError('country')">
+        <span class="field-error" *ngIf="hasFieldError('country')">
+          {{ getFieldError('country') }}
+        </span>
+      </div>
+
+      <div class="form-group">
+        <label for="street">Street</label>
+        <input
+          type="text"
+          id="street"
+          name="street"
+          [(ngModel)]="user.street"
+          required
+          placeholder="Enter your street"
+          [disabled]="isLoading"
+          [class.error]="hasFieldError('street')">
+        <span class="field-error" *ngIf="hasFieldError('street')">
+          {{ getFieldError('street') }}
+        </span>
+      </div>
+
+      <div class="form-group">
+        <label for="street_number">Street Number</label>
+        <input
+          type="text"
+          id="street_number"
+          name="street_number"
+          [(ngModel)]="user.street_number"
+          required
+          placeholder="Enter your street number"
+          [disabled]="isLoading"
+          [class.error]="hasFieldError('street_number')">
+        <span class="field-error" *ngIf="hasFieldError('street_number')">
+          {{ getFieldError('street_number') }}
+        </span>
+      </div>
+
+      <div class="form-group">
+        <label for="password">Password</label>
+        <input
+          type="password"
+          id="password"
+          name="password"
+          #passwordField="ngModel"
+          [(ngModel)]="user.password"
+          required
+          minlength="8"
+          placeholder="Enter your password"
+          [disabled]="isLoading"
+          [class.error]="hasFieldError('password') || (passwordField.invalid && passwordField.touched)">
+        <span class="field-error" *ngIf="hasFieldError('password')">
+          {{ getFieldError('password') }}
+        </span>
+        <span class="field-error" *ngIf="!hasFieldError('password') && passwordField.invalid && passwordField.touched">
+          <span *ngIf="passwordField.errors?.['required']">Password is required</span>
+          <span *ngIf="passwordField.errors?.['minlength']">Password must be at least 8 characters long</span>
+        </span>
+      </div>
+
+      <div class="form-group">
+        <label for="confirmPassword">Confirm Password</label>
+        <input
+          type="password"
+          id="confirmPassword"
+          name="confirmPassword"
+          #confirmPasswordField="ngModel"
+          [(ngModel)]="user.confirmPassword"
+          required
+          minlength="8"
+          placeholder="Confirm your password"
+          [disabled]="isLoading"
+          [class.error]="(confirmPasswordField.invalid && confirmPasswordField.touched) || (confirmPasswordField.touched && user.password !== user.confirmPassword)">
+        <span class="field-error" *ngIf="confirmPasswordField.invalid && confirmPasswordField.touched">
+          <span *ngIf="confirmPasswordField.errors?.['required']">Please confirm your password</span>
+          <span *ngIf="confirmPasswordField.errors?.['minlength']">Password must be at least 8 characters long</span>
+        </span>
+        <span class="field-error" *ngIf="confirmPasswordField.valid && confirmPasswordField.touched && user.password !== user.confirmPassword">
+          Passwords do not match
+        </span>
+      </div>
+
+      <div class="error-message" *ngIf="errorMessage">
+        {{ errorMessage }}
+      </div>
+
+      <div class="success-message" *ngIf="successMessage">
+        {{ successMessage }}
+      </div>
+
+      <button
+        type="submit"
+        class="btn btn-primary"
+        [disabled]="!registerForm.form.valid || isLoading || user.password !== user.confirmPassword">
+        {{ isLoading ? 'Registering...' : 'Register' }}
+      </button>
+    </form>
+
+    <div class="login-link">
+      Already have an account? <a routerLink="/login">Login here</a>
+    </div>
+  </div>
+</div>
