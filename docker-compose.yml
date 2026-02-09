@@ -57,6 +57,62 @@ services:
       timeout: 5s
       retries: 5
 
+  main-service:
+    build:
+      context: ./backend/main-service
+      dockerfile: Dockerfile
+    container_name: quiz-main-service
+    environment:
+      - SECRET_KEY=dev-secret-key-change-in-production
+      - DATABASE_URL=postgresql://postgres:user@postgres:5432/quiz_users
+      - REDIS_URL=redis://redis:6379/0
+      - QUIZ_SERVICE_URL=http://quiz-service:5001
+    ports:
+      - "5000:5000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - quiz-network
+    restart: unless-stopped
+
+  quiz-service:
+    build:
+      context: ./backend/quiz-service
+      dockerfile: Dockerfile
+    container_name: quiz-quiz-service
+    environment:
+      - SECRET_KEY=dev-secret-key-change-in-production
+      - MONGO_URI=mongodb://admin:admin@mongodb:27017/quiz_db?authSource=admin
+      - MONGO_DB=quiz_db
+      - MAIN_SERVICE_URL=http://main-service:5000
+    ports:
+      - "5001:5001"
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      main-service:
+        condition: service_started
+    networks:
+      - quiz-network
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend/quiz-platform-ui
+      dockerfile: Dockerfile
+    container_name: quiz-frontend
+    ports:
+      - "80:80"
+    depends_on:
+      - main-service
+      - quiz-service
+    networks:
+      - quiz-network
+    restart: unless-stopped
+
 networks:
   quiz-network:
     driver: bridge
