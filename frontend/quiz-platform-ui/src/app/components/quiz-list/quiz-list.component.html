@@ -1,0 +1,63 @@
+<div class="quiz-list-container">
+  <div class="header-section">
+    <h2>Quiz Library</h2>
+    <div class="actions">
+      <button *ngIf="canCreateQuiz() && !canApprove()" class="btn btn-primary" (click)="createQuiz()">
+        Create New Quiz
+      </button>
+    </div>
+  </div>
+
+  <div class="loading" *ngIf="isLoading">
+    <p>Loading quizzes...</p>
+  </div>
+
+  <div class="error-message" *ngIf="errorMessage">
+    {{ errorMessage }}
+  </div>
+
+  <div class="quiz-grid" *ngIf="!isLoading && !errorMessage">
+    <div class="quiz-card" *ngFor="let quiz of filteredQuizzes" (click)="viewQuiz(quiz._id)">
+      <div class="quiz-header">
+        <h3>{{ quiz.title }}</h3>
+        <span class="badge badge-{{ quiz.status.toLowerCase() }}">{{ quiz.status }}</span>
+      </div>
+
+      <p class="quiz-description">{{ quiz.description }}</p>
+
+      <div class="quiz-meta">
+        <span class="meta-item">
+          <strong>Author:</strong> {{ quiz.author_email || 'Unknown' }}
+        </span>
+        <span class="meta-item">
+          <strong>Questions:</strong> {{ quiz.questions?.length || 0 }}
+        </span>
+        <span class="meta-item">
+          <strong>Time Limit:</strong> {{ quiz.duration_seconds }} seconds
+        </span>
+      </div>
+
+      <div class="quiz-actions" *ngIf="canApprove() && quiz.status === 'PENDING'">
+        <button class="btn btn-success btn-sm" (click)="approveQuiz(quiz._id, $event)">
+          Approve
+        </button>
+        <button class="btn btn-danger btn-sm" (click)="rejectQuiz(quiz._id, $event)">
+          Reject
+        </button>
+      </div>
+
+      <div class="quiz-actions" *ngIf="canApprove()">
+        <button class="btn btn-danger btn-sm" (click)="deleteQuiz(quiz._id, $event)">
+          Delete
+        </button>
+      </div>
+    </div>
+
+    <div class="empty-state" *ngIf="filteredQuizzes.length === 0">
+      <p>No quizzes found.</p>
+      <button *ngIf="canCreateQuiz()" class="btn btn-primary" (click)="createQuiz()">
+        Create Your First Quiz
+      </button>
+    </div>
+  </div>
+</div>
