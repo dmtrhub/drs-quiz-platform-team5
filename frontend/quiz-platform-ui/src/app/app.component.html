@@ -1,1 +1,16 @@
-<h1>Quiz platform works 🚀</h1>
+<div class="app-container">
+  <app-notification></app-notification>
+
+  <header *ngIf="currentUser$ | async as user">
+   <nav>
+    <a routerLink="/login">Login</a>
+    <a routerLink="/register">Register</a>
+    <a routerLink="/quizzes">Quizzes</a>
+    <a routerLink="/profile">Profile</a>
+    <button (click)="logout()">Logout ({{ user.email }})</button>
+  </nav>
+</header>
+    <main>
+    <router-outlet></router-outlet>
+    </main>
+</div>
