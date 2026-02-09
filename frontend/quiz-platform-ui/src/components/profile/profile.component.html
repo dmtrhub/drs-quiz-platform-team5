@@ -1,0 +1,214 @@
+<div class="profile-container">
+  <div class="profile-header">
+    <h1>My Profile</h1>
+    <button class="btn btn-primary" (click)="toggleEdit()" [disabled]="isLoading">
+      {{ isEditing ? 'Cancel' : 'Edit Profile' }}
+    </button>
+  </div>
+
+  <div class="error-message" *ngIf="errorMessage">
+    {{ errorMessage }}
+  </div>
+
+  <div class="success-message" *ngIf="successMessage">
+    {{ successMessage }}
+  </div>
+
+  <div class="loading" *ngIf="isLoading && !profile.email">
+    Loading profile...
+  </div>
+
+  <div class="profile-content" *ngIf="!isLoading || profile.email">
+    <div class="profile-image-section">
+      <img [src]="getProfileImageUrl()" alt="Profile" class="profile-image-large">
+      <div class="profile-role-badge-container">
+        <div class="profile-role-badge" [ngClass]="'badge-' + profile.role.toLowerCase()">
+          {{ profile.role }}
+        </div>
+      </div>
+    </div>
+
+    <form (ngSubmit)="onSubmit()" *ngIf="isEditing" class="profile-form">
+      <div class="form-grid">
+        <div class="form-group">
+          <label for="first_name">First Name *</label>
+          <input
+            type="text"
+            id="first_name"
+            name="first_name"
+            [(ngModel)]="profile.first_name"
+            required
+            [disabled]="isLoading">
+        </div>
+
+        <div class="form-group">
+          <label for="last_name">Last Name *</label>
+          <input
+            type="text"
+            id="last_name"
+            name="last_name"
+            [(ngModel)]="profile.last_name"
+            required
+            [disabled]="isLoading">
+        </div>
+
+        <div class="form-group full-width">
+          <label for="email">Email (cannot be changed)</label>
+          <input
+            type="email"
+            id="email"
+            name="email"
+            [(ngModel)]="profile.email"
+            disabled>
+        </div>
+
+        <div class="form-group">
+          <label for="birth_date">Date of Birth</label>
+          <input
+            type="date"
+            id="birth_date"
+            name="birth_date"
+            [(ngModel)]="profile.birth_date"
+            [disabled]="isLoading">
+        </div>
+
+        <div class="form-group">
+          <label for="gender">Gender</label>
+          <select
+            id="gender"
+            name="gender"
+            [(ngModel)]="profile.gender"
+            [disabled]="isLoading">
+            <option value="">Select gender</option>
+            <option value="Male">Male</option>
+            <option value="Female">Female</option>
+            <option value="Other">Other</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="country">Country</label>
+          <input
+            type="text"
+            id="country"
+            name="country"
+            [(ngModel)]="profile.country"
+            [disabled]="isLoading">
+        </div>
+
+        <div class="form-group">
+          <label for="street">Street</label>
+          <input
+            type="text"
+            id="street"
+            name="street"
+            [(ngModel)]="profile.street"
+            [disabled]="isLoading">
+        </div>
+
+        <div class="form-group">
+          <label for="street_number">Street Number</label>
+          <input
+            type="text"
+            id="street_number"
+            name="street_number"
+            [(ngModel)]="profile.street_number"
+            [disabled]="isLoading">
+        </div>
+
+        <div class="form-group full-width">
+          <label for="profile_image">Profile Image</label>
+          <input
+            type="file"
+            id="profile_image"
+            name="profile_image"
+            accept="image/*"
+            (change)="onFileSelected($event)"
+            [disabled]="isLoading"
+            class="file-input">
+          <small class="hint">Upload an image from your computer (JPG, PNG, GIF)</small>
+        </div>
+
+        <div class="form-group">
+          <label for="current_password">Current Password</label>
+          <input
+            type="password"
+            id="current_password"
+            name="current_password"
+            [(ngModel)]="passwordChange.current_password"
+            placeholder="Enter current password"
+            [disabled]="isLoading">
+          <small class="hint">Required only if changing password</small>
+        </div>
+
+        <div class="form-group">
+          <label for="new_password">New Password</label>
+          <input
+            type="password"
+            id="new_password"
+            name="new_password"
+            [(ngModel)]="passwordChange.new_password"
+            placeholder="Enter new password"
+            minlength="8"
+            [disabled]="isLoading">
+          <small class="hint">At least 8 characters</small>
+        </div>
+
+        <div class="form-group">
+          <label for="confirm_password">Confirm New Password</label>
+          <input
+            type="password"
+            id="confirm_password"
+            name="confirm_password"
+            [(ngModel)]="passwordChange.confirm_password"
+            placeholder="Confirm new password"
+            minlength="8"
+            [disabled]="isLoading">
+        </div>
+      </div>
+
+      <div class="form-actions">
+        <button type="submit" class="btn btn-success" [disabled]="isLoading">
+          {{ isLoading ? 'Saving...' : 'Save Changes' }}
+        </button>
+        <button type="button" class="btn btn-secondary" (click)="toggleEdit()" [disabled]="isLoading">
+          Cancel
+        </button>
+      </div>
+    </form>
+
+    <div class="profile-view" *ngIf="!isEditing">
+      <div class="info-grid">
+        <div class="info-item">
+          <label>Full Name:</label>
+          <span>{{ profile.first_name }} {{ profile.last_name }}</span>
+        </div>
+
+        <div class="info-item">
+          <label>Email:</label>
+          <span>{{ profile.email }}</span>
+        </div>
+
+        <div class="info-item">
+          <label>Date of Birth:</label>
+          <span>{{ profile.birth_date || 'Not provided' }}</span>
+        </div>
+
+        <div class="info-item">
+          <label>Gender:</label>
+          <span>{{ profile.gender || 'Not provided' }}</span>
+        </div>
+
+        <div class="info-item">
+          <label>Country:</label>
+          <span>{{ profile.country || 'Not provided' }}</span>
+        </div>
+
+        <div class="info-item">
+          <label>Address:</label>
+          <span>{{ profile.street && profile.street_number ? profile.street + ' ' + profile.street_number : 'Not provided' }}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
