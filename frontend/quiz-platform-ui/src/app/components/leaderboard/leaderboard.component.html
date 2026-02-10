@@ -1,0 +1,68 @@
+<div class="leaderboard-container">
+  <h2>Leaderboard</h2>
+
+  
+  <div class="quiz-filter" *ngIf="showQuizFilter && !isLoadingQuizzes">
+    <label for="quizSelect">Select Quiz:</label>
+    <select id="quizSelect" [(ngModel)]="selectedQuizId" (change)="onQuizSelect()" class="quiz-select">
+      <option value="" disabled>-- Choose a Quiz --</option>
+      <option *ngFor="let quiz of quizzes" [value]="quiz._id?.$oid || quiz._id">
+        {{ quiz.title }}
+      </option>
+    </select>
+  </div>
+
+  <div class="loading" *ngIf="isLoading || isLoadingQuizzes">
+    <p>Loading leaderboard...</p>
+  </div>
+
+  <div class="error-message" *ngIf="errorMessage">
+    {{ errorMessage }}
+  </div>
+
+  <div *ngIf="!isLoading && !errorMessage && !isLoadingQuizzes">
+   
+    <div *ngIf="showQuizFilter && !selectedQuizId" class="empty-state">
+      <p>Please select a quiz from the dropdown above to view its leaderboard.</p>
+    </div>
+
+    
+    <div *ngIf="selectedQuizId || quizId">
+      <div class="actions">
+        <button class="btn btn-primary" (click)="createPdfReport()" *ngIf="isAdmin()">Create PDF Report</button>
+        <button class="btn btn-secondary" (click)="goBack()">Back to Quizzes</button>
+      </div>
+
+      <table class="leaderboard-table" *ngIf="leaderboard.length > 0">
+        <thead>
+          <tr>
+            <th>Rank</th>
+            <th>User</th>
+            <th>Score</th>
+            <th>Time</th>
+            <th>Date</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let entry of leaderboard; let i = index">
+            <td class="rank-cell">
+              <span class="rank-badge" [class.gold]="i === 0" [class.silver]="i === 1" [class.bronze]="i === 2">
+                {{ i + 1 }}
+              </span>
+            </td>
+            <td>{{ entry.user_name || entry.user_id }}</td>
+            <td class="score-cell">
+              <strong>{{ entry.score }}</strong> / {{ entry.max_score }}
+            </td>
+            <td>{{ entry.time_spent_seconds }}s</td>
+            <td>{{ entry.submitted_at?.$date | date:'short' }}</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div *ngIf="leaderboard.length === 0" class="empty-state">
+        <p>No results yet for this quiz.</p>
+      </div>
+    </div>
+  </div>
+</div>
