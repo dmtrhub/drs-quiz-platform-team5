@@ -1,0 +1,65 @@
+<div class="my-quizzes-container">
+  <div class="header">
+    <h2>My Quizzes</h2>
+  </div>
+
+  <div class="success-message" *ngIf="successMessage">
+    {{ successMessage }}
+  </div>
+
+  <div class="error-message" *ngIf="errorMessage">
+    {{ errorMessage }}
+  </div>
+
+  <div class="loading" *ngIf="isLoading">
+    Loading your quizzes...
+  </div>
+
+  <div class="quizzes-list" *ngIf="!isLoading && quizzes.length > 0">
+    <div class="quiz-card" *ngFor="let quiz of quizzes">
+      <div class="quiz-header">
+        <h3>{{ quiz.title }}</h3>
+        <span class="status-badge" [ngClass]="getStatusClass(quiz.status)">
+          {{ getStatusText(quiz.status) }}
+        </span>
+      </div>
+
+      <div class="quiz-info">
+        <p><strong>Questions:</strong> {{ quiz.questions?.length || 0 }}</p>
+        <p><strong>Time Limit:</strong> {{ quiz.duration_seconds }} seconds</p>
+        <p><strong>Created:</strong> {{ getCreatedDate(quiz.created_at) | date:'short' }}</p>
+      </div>
+
+      <div class="quiz-feedback" *ngIf="quiz.status === 'REJECTED' && quiz.rejection_reason">
+        <div class="feedback-box rejection">
+          <strong>Rejection Reason:</strong>
+          <p>{{ quiz.rejection_reason }}</p>
+        </div>
+      </div>
+
+      <div class="quiz-feedback" *ngIf="quiz.status === 'APPROVED' && quiz.approval_notes">
+        <div class="feedback-box approval">
+          <strong>Admin Notes:</strong>
+          <p>{{ quiz.approval_notes }}</p>
+        </div>
+      </div>
+
+      <div class="quiz-actions">
+        <button class="btn btn-primary" (click)="viewQuiz(quiz._id)" *ngIf="quiz.status === 'APPROVED'">
+          View Quiz
+        </button>
+        <button class="btn btn-secondary" (click)="editQuiz(quiz._id)" *ngIf="quiz.status !== 'APPROVED'">
+          Edit
+        </button>
+        <button class="btn btn-danger" (click)="deleteQuiz(quiz._id)">
+          Delete
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="empty-state" *ngIf="!isLoading && quizzes.length === 0">
+    <p>You haven't created any quizzes yet.</p>
+    <button class="btn btn-primary" routerLink="/quiz/create">Create Your First Quiz</button>
+  </div>
+</div>

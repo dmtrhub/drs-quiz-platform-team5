@@ -9,6 +9,7 @@ import { ResultsComponent } from './components/results/results.component';
 import { LeaderboardComponent } from './components/leaderboard/leaderboard.component';
 import { UserManagementComponent } from './components/user-management/user-management.component';
 import { QuizReviewComponent } from './components/quiz-review/quiz-review.component';
+import { MyQuizzesComponent } from './components/my-quizzes/my-quizzes.component';
 
 
 export const routes: Routes = [
@@ -18,6 +19,7 @@ export const routes: Routes = [
   { path: 'quizzes', component: QuizListComponent, canActivate: [authGuard] },
   { path: 'quiz/create', component: QuizFormComponent, canActivate: [authGuard] },
   { path: 'quiz/edit/:id', component: QuizFormComponent, canActivate: [authGuard] },
+  { path: 'my-quizzes', component: MyQuizzesComponent, canActivate: [authGuard] },
   { path: 'results', component: ResultsComponent, canActivate: [authGuard] },
   { path: 'leaderboard', component: LeaderboardComponent, canActivate: [authGuard] },
   { path: 'leaderboard/:id', component: LeaderboardComponent, canActivate: [authGuard] },
