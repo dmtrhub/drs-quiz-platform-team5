@@ -1,0 +1,119 @@
+<div class="quiz-detail-container">
+  <div class="loading" *ngIf="isLoading">
+    <p>Loading quiz...</p>
+  </div>
+
+  <div class="error-message" *ngIf="errorMessage">
+    {{ errorMessage }}
+    <button class="btn btn-secondary" (click)="goBack()">Go Back</button>
+  </div>
+
+  <!-- Admin Overview - Read Only -->
+  <div *ngIf="!isLoading && quiz && isAdminView" class="quiz-overview">
+    <div class="overview-header">
+      <h2>{{ quiz.title }}</h2>
+      <span class="badge badge-{{ quiz.status?.toLowerCase() }}">{{ quiz.status }}</span>
+    </div>
+
+    <div class="quiz-info">
+      <div class="info-item">
+        <strong>Author:</strong> {{ quiz.author_email || 'Unknown' }}
+      </div>
+      <div class="info-item">
+        <strong>Questions:</strong> {{ quiz.questions?.length }}
+      </div>
+      <div class="info-item">
+        <strong>Time Limit:</strong> {{ quiz.duration_seconds }} seconds
+      </div>
+      <div class="info-item">
+        <strong>Created:</strong> {{ quiz.created_at?.$date ? (quiz.created_at.$date | date:'short') : (quiz.created_at | date:'short') }}
+      </div>
+    </div>
+
+    <div class="questions-preview">
+      <h3>Questions</h3>
+      <div class="question-item" *ngFor="let question of quiz.questions; let i = index">
+        <div class="question-header-preview">
+          <strong>Question {{ i + 1 }}:</strong> {{ question.text }}
+        </div>
+        <div class="question-points">Points: {{ question.points }}</div>
+
+        <div class="answers-list">
+          <div class="answer-option" *ngFor="let answer of question.answers" [class.correct-answer]="answer.correct">
+            <span class="answer-marker">{{ answer.correct ? '✓' : '○' }}</span>
+            <span class="answer-text">{{ answer.text }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="quiz-actions">
+      <button class="btn btn-secondary" (click)="goBack()">Back to List</button>
+    </div>
+  </div>
+
+  <!-- Player View - Can Start Quiz -->
+  <div *ngIf="!isLoading && quiz && !quizStarted && !isAdminView" class="quiz-intro">
+    <h2>{{ quiz.title }}</h2>
+    <p class="quiz-description">{{ quiz.description }}</p>
+
+    <div class="quiz-info">
+      <div class="info-item">
+        <strong>Questions:</strong> {{ quiz.questions?.length }}
+      </div>
+      <div class="info-item">
+        <strong>Time Limit:</strong> {{ formatTime(timeRemaining) }}
+      </div>
+    </div>
+
+    <div class="quiz-actions">
+      <button class="btn btn-primary" (click)="startQuiz()">Start Quiz</button>
+      <button class="btn btn-secondary" (click)="viewLeaderboard()">View Leaderboard</button>
+      <button class="btn btn-secondary" (click)="goBack()">Back to List</button>
+    </div>
+  </div>
+
+  <div *ngIf="!isLoading && quiz && quizStarted && !quizSubmitted" class="quiz-questions">
+    <div class="quiz-header">
+      <h2>{{ quiz.title }}</h2>
+      <div class="timer" [class.warning]="timeRemaining < 60">
+        Time Remaining: {{ formatTime(timeRemaining) }}
+      </div>
+    </div>
+
+    <form #quizForm="ngForm" (ngSubmit)="submitQuiz()">
+      <div class="question-container" *ngFor="let question of quiz.questions; let i = index">
+        <div class="question-header">
+          <h3>Question {{ i + 1 }}</h3>
+          <span class="points">{{ question.points }} points</span>
+        </div>
+
+        <p class="question-text">{{ question.text }}</p>
+
+        <div class="answer-section">
+          <div class="radio-group">
+            <label *ngFor="let answer of question.answers; let j = index" class="radio-option">
+              <input
+                type="radio"
+                [name]="'question_' + i"
+                [value]="j"
+                [(ngModel)]="answers[i].answer_index"
+                required>
+              {{ answer.text }}
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <div class="submit-section">
+        <button type="submit" class="btn btn-primary btn-lg">Submit Quiz</button>
+      </div>
+    </form>
+  </div>
+
+  <div *ngIf="quizSubmitted" class="quiz-submitted">
+    <h2>Quiz Submitted!</h2>
+    <p>Your answers have been submitted and are being processed.</p>
+    <p>Redirecting to results page...</p>
+  </div>
+</div>
