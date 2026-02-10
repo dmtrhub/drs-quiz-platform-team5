@@ -12,7 +12,7 @@ import { NotificationComponent } from './components/notification/notification.co
   standalone: true,
    imports: [CommonModule, RouterOutlet, RouterLink, RouterLinkActive, NotificationComponent],
   templateUrl: './app.component.html',
-  styleUrls: ['./app.component.css'],
+  styleUrl: ['./app.component.css'],
 })
 export class AppComponent implements OnInit, OnDestroy {
   

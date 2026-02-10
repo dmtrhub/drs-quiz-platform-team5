@@ -4,21 +4,23 @@
           <div class="header-content">
             <h1>{{ title }}</h1>
             <nav class="nav-menu">
+              <!-- Player Navigation -->
               <a routerLink="/quizzes" routerLinkActive="active" *ngIf="isPlayer(user)">Quizzes</a>
                 <a routerLink="/results" routerLinkActive="active" *ngIf="isPlayer(user)">My Results</a>
+                <a routerLink="/leaderboard" routerLinkActive="active" *ngIf="isPlayer(user)">Leaderboard</a>
 
                 <!-- Moderator Navigation -->
+                <a routerLink="/my-quizzes" routerLinkActive="active" *ngIf="isModerator(user)">My Quizzes</a>
+                <a routerLink="/leaderboard" routerLinkActive="active" *ngIf="isModerator(user)">Leaderboard</a>
                 <a routerLink="/quiz/create" routerLinkActive="active" *ngIf="isModerator(user)">Create Quiz</a>
 
                 <!-- Admin Navigation -->
                 <a routerLink="/quizzes" routerLinkActive="active" *ngIf="isAdmin(user)">Quizzes</a>
                 <a routerLink="/quiz-review" routerLinkActive="active" *ngIf="isAdmin(user)">Quiz Review</a>
+                <a routerLink="/user-management" routerLinkActive="active" *ngIf="isAdmin(user)">User Management</a>
+                <a routerLink="/leaderboard" routerLinkActive="active" *ngIf="isAdmin(user)">Leaderboard</a>
 
-            <!-- <a routerLink="/login">Login</a>
-              <a routerLink="/register">Register</a>
-              <a routerLink="/quizzes">Quizzes</a>
-              <a routerLink="/profile">Profile</a>
-              <button (click)="logout()">Logout ({{ user.email }})</button>-->
+
             </nav>
             <div class="user-menu">
               <a routerLink="/profile" class="profile-link" title="View Profile">
