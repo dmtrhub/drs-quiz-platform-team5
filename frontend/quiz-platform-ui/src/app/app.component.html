@@ -1,16 +1,36 @@
 <div class="app-container">
   <app-notification></app-notification>
+    <header class="app-header" *ngIf="currentUser$ | async as user">
+          <div class="header-content">
+            <h1>{{ title }}</h1>
+            <nav class="nav-menu">
+              <a routerLink="/quizzes" routerLinkActive="active" *ngIf="isPlayer(user)">Quizzes</a>
+                <a routerLink="/results" routerLinkActive="active" *ngIf="isPlayer(user)">My Results</a>
 
-  <header *ngIf="currentUser$ | async as user">
-   <nav>
-    <a routerLink="/login">Login</a>
-    <a routerLink="/register">Register</a>
-    <a routerLink="/quizzes">Quizzes</a>
-    <a routerLink="/profile">Profile</a>
-    <button (click)="logout()">Logout ({{ user.email }})</button>
-  </nav>
+                <!-- Moderator Navigation -->
+                <a routerLink="/quiz/create" routerLinkActive="active" *ngIf="isModerator(user)">Create Quiz</a>
+
+                <!-- Admin Navigation -->
+                <a routerLink="/quizzes" routerLinkActive="active" *ngIf="isAdmin(user)">Quizzes</a>
+                <a routerLink="/quiz-review" routerLinkActive="active" *ngIf="isAdmin(user)">Quiz Review</a>
+
+            <!-- <a routerLink="/login">Login</a>
+              <a routerLink="/register">Register</a>
+              <a routerLink="/quizzes">Quizzes</a>
+              <a routerLink="/profile">Profile</a>
+              <button (click)="logout()">Logout ({{ user.email }})</button>-->
+            </nav>
+            <div class="user-menu">
+              <a routerLink="/profile" class="profile-link" title="View Profile">
+                <img [src]="getProfileImageUrl(user)" alt="Profile" class="profile-image">
+              </a>
+              <span class="user-info">{{ user.first_name }} {{ user.last_name }} ({{ user.role }})</span>
+              <button class="btn btn-logout" (click)="logout()">Logout</button>
+             </div>
+
+          </div>
 </header>
-    <main>
+    <main class="app-main">
     <router-outlet></router-outlet>
     </main>
 </div>
