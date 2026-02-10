@@ -1,0 +1,94 @@
+<div class="quiz-form-container">
+  <h2>{{ isEditMode ? 'Edit Quiz' : 'Create New Quiz' }}</h2>
+
+  <div class="success-message" *ngIf="successMessage">
+    {{ successMessage }}
+  </div>
+
+  <div class="error-message" *ngIf="errorMessage">
+    {{ errorMessage }}
+  </div>
+
+  <div class="loading" *ngIf="isLoading && isEditMode">
+    Loading quiz...
+  </div>
+
+  <form (ngSubmit)="onSubmit()" #quizForm="ngForm" *ngIf="!isLoading || !isEditMode">
+    <div class="form-section">
+      <h3>Quiz Information</h3>
+
+      <div class="form-group">
+        <label for="quiz_author">Quiz Author</label>
+        <input type="text" id="quiz_author" [value]="quizAuthor" disabled class="form-control">
+      </div>
+
+      <div class="form-group">
+        <label for="title">Title *</label>
+        <input type="text" id="title" name="title" [(ngModel)]="quiz.title" required class="form-control">
+      </div>
+
+      <div class="form-group">
+        <label for="time_limit">Time Limit (seconds) *</label>
+        <input type="number" id="time_limit" name="time_limit" [(ngModel)]="quiz.time_limit" required min="20" class="form-control">
+      </div>
+    </div>
+
+    <div class="form-section">
+      <div class="section-header">
+        <h3>Questions</h3>
+      </div>
+
+      <div class="question-item" *ngFor="let question of quiz.questions; let i = index">
+        <div class="question-header">
+          <h4>Question {{ i + 1 }}</h4>
+          <button type="button" class="btn btn-danger btn-sm" (click)="removeQuestion(i)">Remove</button>
+        </div>
+
+        <div class="form-group">
+          <label>Question Text *</label>
+          <input type="text" [(ngModel)]="question.text" [name]="'question_text_' + i" required class="form-control">
+        </div>
+
+        <div class="form-group">
+          <label>Points *</label>
+          <input type="number" [(ngModel)]="question.points" [name]="'question_points_' + i" required min="1" class="form-control">
+        </div>
+
+        <div class="answers-section">
+          <label>Answer Options * (minimum 2 required, wrong answers auto-penalized)</label>
+          <div *ngFor="let answer of question.answers; let j = index" class="answer-row">
+            <button type="button"
+                    class="correct-toggle-btn"
+                    [class.correct-active]="answer.correct"
+                    (click)="toggleCorrectAnswer(i, j)">
+              <span class="checkmark" *ngIf="answer.correct">✓</span>
+              <span *ngIf="!answer.correct">○</span>
+            </button>
+            <input type="text"
+                   [(ngModel)]="answer.text"
+                   [name]="'answer_' + i + '_' + j"
+                   required
+                   placeholder="Answer option"
+                   class="form-control answer-input">
+            <button type="button"
+                    class="btn btn-sm btn-danger"
+                    (click)="removeAnswer(i, j)"
+                    [disabled]="question.answers.length <= 2">
+              Remove
+            </button>
+          </div>
+          <button type="button" class="btn btn-sm btn-secondary" (click)="addAnswer(i)">Add Answer Option</button>
+        </div>
+      </div>
+
+      <button type="button" class="btn btn-secondary add-question-btn" (click)="addQuestion()">Add Question</button>
+    </div>
+
+    <div class="form-actions">
+      <button type="submit" class="btn btn-primary" [disabled]="!isFormValid() || isLoading">
+        {{ isLoading ? (isEditMode ? 'Updating...' : 'Creating...') : (isEditMode ? 'Update Quiz' : 'Create Quiz') }}
+      </button>
+      <button type="button" class="btn btn-secondary" (click)="cancel()">Cancel</button>
+    </div>
+  </form>
+</div>
