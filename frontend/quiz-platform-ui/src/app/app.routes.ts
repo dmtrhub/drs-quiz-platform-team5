@@ -7,6 +7,7 @@ import { QuizListComponent } from './components/quiz-list/quiz-list.component';
 import { QuizFormComponent } from './components/quiz-form/quiz-form.component';
 import { ResultsComponent } from './components/results/results.component';
 import { LeaderboardComponent } from './components/leaderboard/leaderboard.component';
+import { UserManagementComponent } from './components/user-management/user-management.component';
 
 
 export const routes: Routes = [
@@ -19,5 +20,6 @@ export const routes: Routes = [
   { path: 'results', component: ResultsComponent, canActivate: [authGuard] },
   { path: 'leaderboard', component: LeaderboardComponent, canActivate: [authGuard] },
   { path: 'leaderboard/:id', component: LeaderboardComponent, canActivate: [authGuard] },
+  { path: 'user-management', component: UserManagementComponent, canActivate: [authGuard] },
   { path: '**', redirectTo: '/quizzes' }
 ];

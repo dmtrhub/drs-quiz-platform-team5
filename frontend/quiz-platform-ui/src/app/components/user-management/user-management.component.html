@@ -1,0 +1,116 @@
+<div class="user-management-container">
+  <div class="header">
+    <h1>User Management</h1>
+    <p class="subtitle">Manage all platform users, roles, and permissions</p>
+  </div>
+
+  <div class="error-message" *ngIf="errorMessage">
+    {{ errorMessage }}
+  </div>
+
+  <div class="success-message" *ngIf="successMessage">
+    {{ successMessage }}
+  </div>
+
+  <div *ngIf="!isLoading && currentUser?.role === 'ADMIN'">
+    <!-- Filters and Search -->
+    <div class="filters-section">
+      <div class="search-box">
+        <input
+          type="text"
+          [(ngModel)]="searchTerm"
+          (ngModelChange)="onSearchChange()"
+          placeholder="Search by name or email..."
+          class="search-input">
+      </div>
+
+      <div class="filter-group">
+        <label for="roleFilter">Filter by Role:</label>
+        <select
+          id="roleFilter"
+          [(ngModel)]="filterRole"
+          (ngModelChange)="onFilterChange()"
+          class="role-filter">
+          <option value="ALL">All Roles</option>
+          <option value="PLAYER">Players</option>
+          <option value="MODERATOR">Moderators</option>
+          <option value="ADMIN">Admins</option>
+        </select>
+      </div>
+
+      <div class="user-count">
+        Showing {{ filteredUsers.length }} of {{ users.length }} users
+      </div>
+    </div>
+
+    <!-- Users Table -->
+    <div class="table-container">
+      <table class="users-table">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Name</th>
+            <th>Email</th>
+            <th>Role</th>
+            <th>Country</th>
+            <th>Registered</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let user of filteredUsers">
+            <td>{{ user.id }}</td>
+            <td>{{ user.first_name }} {{ user.last_name }}</td>
+            <td>{{ user.email }}</td>
+            <td>
+              <div *ngIf="editingUserId !== user.id" class="role-display">
+                <span class="badge" [ngClass]="getRoleBadgeClass(user.role)">
+                  {{ user.role }}
+                </span>
+              </div>
+              <div *ngIf="editingUserId === user.id" class="role-edit">
+                <select [(ngModel)]="selectedRole" class="role-select">
+                  <option value="PLAYER">PLAYER</option>
+                  <option value="MODERATOR">MODERATOR</option>
+                  <option value="ADMIN">ADMIN</option>
+                </select>
+                <button class="btn btn-sm btn-success" (click)="saveRoleChange(user.id)" title="Save">
+                  ✓
+                </button>
+                <button class="btn btn-sm btn-secondary" (click)="cancelEditingRole()" title="Cancel">
+                  ✕
+                </button>
+              </div>
+            </td>
+            <td>{{ user.country || 'N/A' }}</td>
+            <td>{{ user.created_at | date: 'MMM d, yyyy' }}</td>
+            <td class="actions-cell">
+              <button
+                *ngIf="editingUserId !== user.id"
+                class="btn btn-sm btn-primary"
+                (click)="changeRole(user.id, user.role)"
+                [disabled]="user.id === currentUser?.id">
+                Change Role
+              </button>
+              <button
+                *ngIf="editingUserId !== user.id"
+                class="btn btn-sm btn-danger"
+                (click)="deleteUser(user.id, user.first_name + ' ' + user.last_name)"
+                [disabled]="user.id === currentUser?.id">
+                Delete
+              </button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div *ngIf="filteredUsers.length === 0" class="no-users">
+        <p>No users found matching your criteria.</p>
+      </div>
+    </div>
+  </div>
+
+  <div *ngIf="isLoading" class="loading">
+    <p>Loading users...</p>
+  </div>
+</div>
