@@ -8,6 +8,7 @@ import { QuizFormComponent } from './components/quiz-form/quiz-form.component';
 import { ResultsComponent } from './components/results/results.component';
 import { LeaderboardComponent } from './components/leaderboard/leaderboard.component';
 import { UserManagementComponent } from './components/user-management/user-management.component';
+import { QuizReviewComponent } from './components/quiz-review/quiz-review.component';
 
 
 export const routes: Routes = [
@@ -21,5 +22,6 @@ export const routes: Routes = [
   { path: 'leaderboard', component: LeaderboardComponent, canActivate: [authGuard] },
   { path: 'leaderboard/:id', component: LeaderboardComponent, canActivate: [authGuard] },
   { path: 'user-management', component: UserManagementComponent, canActivate: [authGuard] },
+  { path: 'quiz-review', component: QuizReviewComponent, canActivate: [authGuard] },
   { path: '**', redirectTo: '/quizzes' }
 ];

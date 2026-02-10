@@ -1,0 +1,82 @@
+<div class="quiz-review-container">
+  <h2>Quiz Review</h2>
+
+  <div class="success-message" *ngIf="successMessage">
+    {{ successMessage }}
+  </div>
+
+  <div class="error-message" *ngIf="errorMessage">
+    {{ errorMessage }}
+  </div>
+
+  <div class="loading" *ngIf="isLoading">
+    Loading pending quizzes...
+  </div>
+
+  <div class="content" *ngIf="!isLoading">
+    <div class="quizzes-list">
+      <h3>Pending Quizzes ({{ pendingQuizzes.length }})</h3>
+
+      <div class="empty-state" *ngIf="pendingQuizzes.length === 0">
+        <p>No quizzes pending review.</p>
+      </div>
+
+      <div class="quiz-item" *ngFor="let quiz of pendingQuizzes">
+        <div class="quiz-summary">
+          <h4>{{ quiz.title }}</h4>
+          <p><strong>Author:</strong> {{ quiz.author_email || 'Unknown' }}</p>
+          <p><strong>Questions:</strong> {{ quiz.questions?.length || 0 }}</p>
+          <p><strong>Submitted:</strong> {{ getCreatedDate(quiz.created_at) | date:'short' }}</p>
+        </div>
+        <div class="quiz-item-actions">
+          <button class="btn btn-primary" (click)="viewQuiz(quiz)">Review</button>
+          <button class="btn btn-danger" (click)="deleteQuiz(quiz._id)">Delete</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="quiz-detail" *ngIf="selectedQuiz">
+      <div class="detail-header">
+        <h3>{{ selectedQuiz.title }}</h3>
+        <button class="btn-close" (click)="closeQuizView()">×</button>
+      </div>
+
+      <div class="detail-info">
+        <p><strong>Author:</strong> {{ selectedQuiz.author_email || 'Unknown' }}</p>
+        <p><strong>Time Limit:</strong> {{ selectedQuiz.duration_seconds }} seconds</p>
+        <p><strong>Total Questions:</strong> {{ selectedQuiz.questions?.length || 0 }}</p>
+      </div>
+
+      <div class="questions-section">
+        <h4>Questions</h4>
+        <div class="question-card" *ngFor="let question of selectedQuiz.questions; let i = index">
+          <div class="question-header">
+            <strong>Question {{ i + 1 }}:</strong> {{ question.text }}
+          </div>
+          <div class="question-points">Points: {{ question.points }}</div>
+
+          <div class="answers-list">
+            <div class="answer-item" *ngFor="let answer of question.answers" [class.correct-answer]="answer.correct">
+              <span class="answer-marker" *ngIf="answer.correct">✓</span>
+              <span class="answer-marker" *ngIf="!answer.correct">○</span>
+              {{ answer.text }}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="review-actions">
+        <div class="form-group">
+          <label for="rejection_reason">Rejection Reason (Required if rejecting)</label>
+          <textarea id="rejection_reason" [(ngModel)]="reviewForm.rejectionReason" rows="3" class="form-control" placeholder="Explain why this quiz is being rejected..."></textarea>
+        </div>
+
+        <div class="action-buttons">
+          <button class="btn btn-success" (click)="approveQuiz()">Approve Quiz</button>
+          <button class="btn btn-danger" (click)="rejectQuiz()">Reject Quiz</button>
+          <button class="btn btn-secondary" (click)="closeQuizView()">Cancel</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
