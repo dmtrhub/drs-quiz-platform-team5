@@ -1,0 +1,61 @@
+<div class="results-container">
+  <div class="header-section">
+    <h2>My Quiz Results</h2>
+    <p class="subtitle">Track your performance across all completed quizzes</p>
+  </div>
+
+  <div class="loading" *ngIf="isLoading">
+    <div class="spinner"></div>
+    <p>Loading your results...</p>
+  </div>
+
+  <div class="error-message" *ngIf="errorMessage">
+    {{ errorMessage }}
+  </div>
+
+  <div *ngIf="!isLoading && !errorMessage">
+    <div *ngIf="results.length === 0" class="empty-state">
+      <div class="empty-icon">📊</div>
+      <h3>No Results Yet</h3>
+      <p>You haven't completed any quizzes yet. Start taking quizzes to see your results here!</p>
+    </div>
+
+    <div class="results-grid" *ngIf="results.length > 0">
+      <div class="result-card" *ngFor="let result of results">
+        <div class="card-header">
+          <div class="score-circle" [class.high-score]="getPercentage(result.score, result.max_score) >= 80"
+                                     [class.medium-score]="getPercentage(result.score, result.max_score) >= 50 && getPercentage(result.score, result.max_score) < 80"
+                                     [class.low-score]="getPercentage(result.score, result.max_score) < 50">
+            <div class="percentage">{{ getPercentage(result.score, result.max_score) }}%</div>
+          </div>
+        </div>
+
+        <div class="card-body">
+          <h3 class="quiz-title">{{ result.quiz_title || 'Quiz' }}</h3>
+
+          <div class="stat-row">
+            <div class="stat-item">
+              <span class="stat-label">Score</span>
+              <span class="stat-value">{{ result.score }} / {{ result.max_score }}</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-label">Time Spent</span>
+              <span class="stat-value">{{ result.time_spent_seconds }}s</span>
+            </div>
+          </div>
+
+          <div class="submission-date" *ngIf="result.submitted_at">
+            <span class="date-icon">📅</span>
+            {{ result.submitted_at?.$date | date:'medium' }}
+          </div>
+        </div>
+
+        <div class="card-footer">
+          <button class="btn btn-primary" (click)="viewLeaderboard(result.quiz_id, result.quiz_title)">
+            View Leaderboard
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
