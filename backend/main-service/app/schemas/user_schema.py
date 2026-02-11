@@ -3,6 +3,13 @@ from marshmallow.fields import Field
 import re
 
 class EnumField(Field):
+    def _serialize(self, value, attr, obj, **kwargs):
+        if value is None:
+            return None
+        if hasattr(value, 'value'):
+            return value.value
+        return str(value)
+
 
 class UserUpdateSchema(Schema):
     first_name = fields.Str(required=False)

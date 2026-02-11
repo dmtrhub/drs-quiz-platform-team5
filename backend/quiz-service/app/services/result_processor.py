@@ -1,4 +1,4 @@
-from multiprocesing import Process
+from multiprocessing import Process
 from flask import current_app
 from bson import ObjectId
 from app.utils.scoring import calculate_quiz_score

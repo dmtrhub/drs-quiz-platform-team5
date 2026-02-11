@@ -11,9 +11,9 @@ def forward_request(path, method='GET', include_body=True):
     url = f"{QUIZ_SERVICE_URL}{path}"
     headers = {}
 
-   if 'Authorization' in request.headers:
+    if 'Authorization' in request.headers:
         headers['Authorization'] = request.headers['Authorization']
-   if 'Content-Type' in request.headers:
+    if 'Content-Type' in request.headers:
         headers['Content-Type'] = request.headers['Content-Type']
 
     params = request.args.to_dict()
@@ -23,11 +23,19 @@ def forward_request(path, method='GET', include_body=True):
         data = request.get_json()
 
     try:
-        response = requests.request(method=method, url=url, headers=headers, params=params, json=data, timeout=30)
+        response = requests.request(
+            method=method,
+            url=url,
+            headers=headers,
+            params=params,
+            json=data,
+            timeout=30
+        )
         return Response(response.content, status=response.status_code, headers=dict(response.headers))
 
-    except requests.exceptions.RequestException as e:
+    except requests.exceptions.RequestException:
         return jsonify({"error": "Failed to connect to quiz service"}), 503
+
 
 @quiz_proxy_bp.route('/quizzes', methods=['GET'])
 @token_required

@@ -8,7 +8,7 @@ from datetime import datetime, date
 
 class UserService:
     @staticmethod
-    def get_all_users(limit=50, offset=0, role=None, search=None, active_only=True):
+    def get_user(user_id):
         """Get all user by ID"""
         user = User.query.get(user_id)
         if not user:
@@ -29,28 +29,33 @@ class UserService:
         if not user:
             raise ValueError("User not found")
 
-            if 'new_password' in update_data and update_data['new_password']:
-                if 'current_password' not in update_data or not update_data['current_password']:
-                    raise ValueError("Current password is required to change password")
+        # Handle password change if provided
+        if 'new_password' in data and data['new_password']:
+            # Verify current password is provided
+            if 'current_password' not in data or not data['current_password']:
+                raise ValueError("Current password is required to change password")
 
+            # Verify current password is correct
             if not verify_password(data['current_password'], user.password_hash):
                 raise ValueError("Current password is incorrect")
 
+            # Hash and update new password
             user.password_hash = hash_password(data['new_password'])
-        
+
+        # Update allowed fields
         if 'first_name' in data:
             user.first_name = data['first_name']
         if 'last_name' in data:
             user.last_name = data['last_name']
         if 'birth_date' in data:
-            if isistance(data['birth_date'], str):
-                try: 
+            # Convert string to date if needed
+            if isinstance(data['birth_date'], str):
+                try:
                     user.birth_date = datetime.strptime(data['birth_date'], '%Y-%m-%d').date()
                 except ValueError:
-                      raise ValueError("Invalid birth date format. Use YYYY-MM-DD")
+                    raise ValueError("Invalid birth date format. Use YYYY-MM-DD")
             else:
                 user.birth_date = data['birth_date']
-
         if 'gender' in data:
             user.gender = data['gender']
         if 'country' in data:
@@ -65,12 +70,12 @@ class UserService:
         user.updated_at = datetime.utcnow()
         db.session.commit()
 
-        return user    
+        return user
 
     @staticmethod
-    def delete_user(user_id, admin_id):
-        """Delete user account (admin only) - soft delete"""
-        user = User.query.get(int(user_id))
+    def delete_user(user_id):
+        """Delete user (admin only)"""
+        user = User.query.get(user_id)
         if not user:
             raise ValueError("User not found")
 
@@ -86,23 +91,24 @@ class UserService:
         if not user:
             raise ValueError("User not found")
 
+        # Validate role
         if new_role not in ['PLAYER', 'MODERATOR', 'ADMIN']:
             raise ValueError("Invalid role")
 
         old_role = user.role.value
-        user.role = RoleEnum(new_role)
+        user.role = RoleEnum[new_role]
         user.updated_at = datetime.utcnow()
 
-        audit_log = AuditLog(user_id=admin_id,
-                             action=f'Changed role of user {user_id}',
-                             details=f'Changed from {old_role} to {new_role}')
-
+        # Log audit
+        audit_log = AuditLog(
+            user_id=admin_id,
+            action=f"Changed role for user {user_id}",
+            details=f"Changed from {old_role} to {new_role}"
+        )
         db.session.add(audit_log)
         db.session.commit()
 
-        EmailService.send_role_change_email(user, old_role, new_role) 
-    
+        # Send email notification
+        EmailService.send_role_change_email(user, old_role, new_role)
+
         return user
-
-
-

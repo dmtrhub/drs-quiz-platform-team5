@@ -1,101 +1,67 @@
-from flask import Flask, jsonify
-from flask_sqlalchemy import SQLAlchemy
-from flask_jwt_extended import JWTManager
-from flask_mail import Mail
+from flask import Flask
 from flask_cors import CORS
-import os
+from flask_jwt_extended import JWTManager
+from pymongo import MongoClient
+from config import Config
 
-# Initialize extensions
-db = SQLAlchemy()
 jwt = JWTManager()
-mail = Mail()
-cors = CORS()
 
-
-def create_app(config_name='default'):
-    """Application factory pattern"""
+def create_app():
     app = Flask(__name__)
+    app.config.from_object(Config)
 
-    # Load configuration
-    from config import config
-    app.config.from_object(config[config_name])
+    app.config['JWT_SECRET_KEY'] = app.config.get('SECRET_KEY', 'dev-secret')
 
-    # **FIX: Remove engine options for SQLite**
-    if 'sqlite' in app.config['SQLALCHEMY_DATABASE_URI']:
-        app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {}
-
-    # Initialize extensions
-    db.init_app(app)
+    CORS(app)
     jwt.init_app(app)
-    mail.init_app(app)
-    cors.init_app(app, resources={r"/api/*": {"origins": "*"}})
 
-    # JWT configuration
-    @jwt.user_identity_loader
-    def user_identity_lookup(user):
-        if isinstance(user, str):
-            return user
-        # Ako je User objekat, vrati ID kao string
-        return str(user.id) if user else None
+    app.mongo_client = MongoClient(app.config['MONGO_URI'])
+    app.mongo_db = app.mongo_client[app.config.get('MONGO_DB', 'quiz_db')]
 
-    @jwt.user_lookup_loader
-    def user_lookup_callback(_jwt_header, jwt_data):
-        from .models.user import User
-        identity = jwt_data["sub"]
-        # identity je string ID
-        return User.query.filter_by(id=int(identity)).one_or_none()
+    from app.models.quiz import QuizModel
+    from app.models.result import ResultModel
 
-    @jwt.expired_token_loader
-    def expired_token_callback(jwt_header, jwt_payload):
-        from .dto.base_dto import ErrorResponseDTO
-        error = ErrorResponseDTO(
-            error='Token Expired',
-            message='Token je istekao. Prijavite se ponovo.'
-        )
-        return jsonify(error.dict()), 401
+    app.quiz_model = QuizModel(app.mongo_db)
+    app.result_model = ResultModel(app.mongo_db)
 
-    @jwt.invalid_token_loader
-    def invalid_token_callback(error):
-        from .dto.base_dto import ErrorResponseDTO
-        error = ErrorResponseDTO(
-            error='Invalid Token',
-            message=f'Nevažeći token: {str(error)}'
-        )
-        return jsonify(error.dict()), 401
+    app.mongo_db.quizzes.create_index('status')
+    app.mongo_db.quizzes.create_index('author_id')
+    app.mongo_db.results.create_index('quiz_id')
+    app.mongo_db.results.create_index('user_id')
+    app.mongo_db.results.create_index([('quiz_id', 1), ('score', -1)])
 
-    @jwt.unauthorized_loader
-    def missing_token_callback(error):
-        from .dto.base_dto import ErrorResponseDTO
-        error = ErrorResponseDTO(
-            error='Unauthorized',
-            message='Zahtev zahteva autentifikaciju. Token nedostaje u zahtevu.'
-        )
-        return jsonify(error.dict()), 401
+    @app.route("/test-db2")
+    def test_db2():
+        try:
+            app.mongo_db.command('ping')
 
-    # Register blueprints
-    from .routes.auth import auth_bp
-    from .routes.users import users_bp
+            test_collection = app.mongo_db.test
+            test_collection.insert_one({"test": "hello"})
+            count = test_collection.count_documents({})
+            test_collection.delete_many({})
 
-    app.register_blueprint(auth_bp, url_prefix='/api/auth')
-    app.register_blueprint(users_bp, url_prefix='/api/users')
-
-    # Health check endpoint
-    @app.route('/api/health', methods=['GET'])
-    def health_check():
-        from .dto.base_dto import SuccessResponseDTO
-        response = SuccessResponseDTO(
-            message='Service is healthy',
-            data={
-                'status': 'healthy',
-                'service': 'Quiz Platform Backend',
-                'environment': app.config['FLASK_ENV']
+            return {
+                "status": "ok",
+                "collections": list(app.mongo_client.list_database_names()),
+                "test_count": count
             }
-        )
-        return jsonify(response.dict()), 200
+        except Exception as e:
+            return {"status": "error", "message": str(e)}, 500
 
-    # Create database tables
-    with app.app_context():
-        db.create_all()
-        app.logger.info("Database tables created successfully")
+    @app.route("/health")
+    def health():
+        try:
+            app.mongo_db.command('ping')
+            return {"status": "ok", "service": "quiz-service"}, 200
+        except Exception as e:
+            return {"status": "error", "message": str(e)}, 500
+
+    from app.routes.quiz import quiz_bp
+    from app.routes.results import results_bp
+    from app.routes.reports import reports_bp
+
+    app.register_blueprint(quiz_bp, url_prefix='/quizzes')
+    app.register_blueprint(results_bp, url_prefix='/results')
+    app.register_blueprint(reports_bp, url_prefix='/reports')
 
     return app

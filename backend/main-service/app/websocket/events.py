@@ -4,7 +4,7 @@ from app.utils.jwt_utils import decode_jwt_token
 
 def register_socketio_events(socketio):
 
-     @socketio.on('connect')
+    @socketio.on('connect')
     def handle_connect():
         print(f"[WebSocket] Client connected: {request.sid}")
         emit('connection_response', {'status': 'connected'})

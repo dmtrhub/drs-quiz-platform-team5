@@ -4,15 +4,15 @@ from app.schemas.user_schema import UserResponseSchema
 
 class RegisterSchema(Schema):
     email = fields.Email(required=True)
-    password = fields.String(required=True)
-    first_name = fields.String(required=True)
-    last_name = fields.String(required=True)
+    password = fields.Str(required=True)
+    first_name = fields.Str(required=True)
+    last_name = fields.Str(required=True)
     birth_date = fields.Date(required=False, allow_none=True)
-    gender = fields.String(required=False, allow_none=True)
-    country = fields.String(required=False, allow_none=True)
-    street = fields.String(required=False, allow_none=True)
-    street_number = fields.String(required=False, allow_none=True)
-    profile_image = fields.String(required=False, allow_none=True)
+    gender = fields.Str(required=False, allow_none=True)
+    country = fields.Str(required=False, allow_none=True)
+    street = fields.Str(required=False, allow_none=True)
+    street_number = fields.Str(required=False, allow_none=True)
+    profile_image = fields.Str(required=False, allow_none=True)
 
     @validates('password')
     def validate_password(self, value):
@@ -28,7 +28,7 @@ class RegisterSchema(Schema):
 
 class LoginSchema(Schema):
     email = fields.Email(required=True)
-    password = fields.String(required=True)
+    password = fields.Str(required=True)
 
 class AuthResponseSchema(Schema):
     message = fields.Str()
