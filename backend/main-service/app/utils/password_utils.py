@@ -10,5 +10,5 @@ def hash_password(password):
 def verify_password(password, hashed):
     """Verify a stored password against one provided by user"""
     password_bytes = password.encode('utf-8')
-    hashed_bytes = hashed.encode('utf-8')
+    hashed_bytes = password_hash.encode('utf-8')
     return bcrypt.checkpw(password_bytes, hashed_bytes)
