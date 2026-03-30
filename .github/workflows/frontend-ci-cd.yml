@@ -43,7 +43,12 @@ jobs:
             ${{ env.IMAGE_NAME }}:latest
             ${{ env.IMAGE_NAME }}:${{ github.sha }}
 
-      - name: Trigger Render deployment
-        if: ${{ secrets.FRONTEND_RENDER_DEPLOY_HOOK != '' }}
+      - name: Trigger Render deployment (optional)
+        env:
+          FRONTEND_RENDER_DEPLOY_HOOK: ${{ secrets.FRONTEND_RENDER_DEPLOY_HOOK }}
         run: |
-          curl -fsS -X POST "${{ secrets.FRONTEND_RENDER_DEPLOY_HOOK }}"
+          if [ -n "$FRONTEND_RENDER_DEPLOY_HOOK" ]; then
+            curl -fsS -X POST "$FRONTEND_RENDER_DEPLOY_HOOK"
+          else
+            echo "FRONTEND_RENDER_DEPLOY_HOOK is not set. Skipping deploy trigger."
+          fi

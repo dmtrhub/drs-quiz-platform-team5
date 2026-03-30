@@ -57,7 +57,24 @@ jobs:
             ${{ env.IMAGE_NAME }}:latest
             ${{ env.IMAGE_NAME }}:${{ github.sha }}
 
-      - name: Trigger Render deployment
-        if: ${{ secrets[matrix.deploy_hook_secret] != '' }}
+      - name: Trigger Render deployment for main-service (optional)
+        if: ${{ matrix.service_name == 'main-service' }}
+        env:
+          MAIN_SERVICE_RENDER_DEPLOY_HOOK: ${{ secrets.MAIN_SERVICE_RENDER_DEPLOY_HOOK }}
         run: |
-          curl -fsS -X POST "${{ secrets[matrix.deploy_hook_secret] }}"
+          if [ -n "$MAIN_SERVICE_RENDER_DEPLOY_HOOK" ]; then
+            curl -fsS -X POST "$MAIN_SERVICE_RENDER_DEPLOY_HOOK"
+          else
+            echo "MAIN_SERVICE_RENDER_DEPLOY_HOOK is not set. Skipping deploy trigger."
+          fi
+
+      - name: Trigger Render deployment for quiz-service (optional)
+        if: ${{ matrix.service_name == 'quiz-service' }}
+        env:
+          QUIZ_SERVICE_RENDER_DEPLOY_HOOK: ${{ secrets.QUIZ_SERVICE_RENDER_DEPLOY_HOOK }}
+        run: |
+          if [ -n "$QUIZ_SERVICE_RENDER_DEPLOY_HOOK" ]; then
+            curl -fsS -X POST "$QUIZ_SERVICE_RENDER_DEPLOY_HOOK"
+          else
+            echo "QUIZ_SERVICE_RENDER_DEPLOY_HOOK is not set. Skipping deploy trigger."
+          fi
