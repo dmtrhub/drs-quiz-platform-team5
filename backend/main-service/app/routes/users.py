@@ -47,8 +47,7 @@ def get_user_public(user_id):
             "user": {
                 "id": user.id,
                 "first_name": user.first_name,
-                "last_name": user.last_name,
-                "email": user.email
+                "last_name": user.last_name
             }
         }), 200
 

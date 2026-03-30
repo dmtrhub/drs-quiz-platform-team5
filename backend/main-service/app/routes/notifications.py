@@ -1,13 +1,34 @@
-from flask import Blueprint, request, jsonify
+from functools import wraps
+from flask import Blueprint, request, jsonify, current_app
 from app import socketio
-from app.websocket.events import emit_quiz_created, emit_quiz_approved, emit_quiz_rejected, emit_quiz_deleted
-from app.services.email_service import EmailService
+from app.websocket.events import (
+    emit_quiz_created,
+    emit_quiz_approved,
+    emit_quiz_published,
+    emit_quiz_rejected,
+    emit_quiz_deleted
+)
 from app.services.user_service import UserService
 
 notifications_bp = Blueprint('notifications', __name__)
 
 
+def internal_service_required(func):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        expected_token = current_app.config.get('INTERNAL_SERVICE_TOKEN')
+        provided_token = request.headers.get('X-Internal-Token')
+
+        if not expected_token or provided_token != expected_token:
+            return jsonify({"error": "Unauthorized internal request"}), 401
+
+        return func(*args, **kwargs)
+
+    return wrapper
+
+
 @notifications_bp.route('/quiz-created', methods=['POST'])
+@internal_service_required
 def notify_quiz_created():
     try:
         quiz_data = request.get_json()
@@ -18,6 +39,7 @@ def notify_quiz_created():
 
 
 @notifications_bp.route('/quiz-approved', methods=['POST'])
+@internal_service_required
 def notify_quiz_approved():
     try:
         data = request.get_json()
@@ -25,12 +47,14 @@ def notify_quiz_approved():
         author_id = data.get('author_id')
 
         emit_quiz_approved(socketio, quiz_data, author_id)
+        emit_quiz_published(socketio, quiz_data)
         return jsonify({"message": "Notification sent"}), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
 
 @notifications_bp.route('/quiz-rejected', methods=['POST'])
+@internal_service_required
 def notify_quiz_rejected():
     try:
         data = request.get_json()
@@ -44,6 +68,7 @@ def notify_quiz_rejected():
 
 
 @notifications_bp.route('/quiz-deleted', methods=['POST'])
+@internal_service_required
 def notify_quiz_deleted():
     try:
         data = request.get_json()
@@ -57,6 +82,7 @@ def notify_quiz_deleted():
 
 
 @notifications_bp.route('/send-quiz-result-email', methods=['POST'])
+@internal_service_required
 def send_quiz_result_email():
     try:
         data = request.get_json()
@@ -110,6 +136,7 @@ Quiz Platform Team
 
 
 @notifications_bp.route('/send-pdf-report', methods=['POST'])
+@internal_service_required
 def send_pdf_report():
     try:
         data = request.get_json()

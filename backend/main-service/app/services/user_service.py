@@ -108,7 +108,13 @@ class UserService:
         db.session.add(audit_log)
         db.session.commit()
 
-        # Send email notification
-        EmailService.send_role_change_email(user, old_role, new_role)
+        # Send email notification asynchronously so role update response is immediate.
+        EmailService.send_role_change_email_async(
+            user.email,
+            user.first_name,
+            user.last_name,
+            old_role,
+            new_role,
+        )
 
         return user

@@ -1,7 +1,5 @@
 from flask import current_app
 from app.utils.pdf_generator import PDFGenerator
-from bson import ObjectId
-import os
 import requests
 
 
@@ -25,17 +23,40 @@ class ReportService:
         main_service_url = current_app.config.get('MAIN_SERVICE_URL', 'http://localhost:5000')
         for result in results:
             user_id = result.get('user_id')
+            existing_name = (result.get('user_name') or '').strip()
+
+            if existing_name and not existing_name.lower().startswith('user '):
+                continue
+
             try:
-                response = requests.get(f"{main_service_url}/users/{user_id}/public")
+                response = requests.get(f"{main_service_url}/users/{user_id}/public", timeout=3)
                 if response.status_code == 200:
                     user_data = response.json().get('user', {})
                     first_name = user_data.get('first_name', '')
                     last_name = user_data.get('last_name', '')
-                    result['user_name'] = f"{first_name} {last_name}".strip() or f"User {user_id}"
+                    resolved_name = f"{first_name} {last_name}".strip()
+                    result['user_name'] = resolved_name or f"User {user_id}"
+
+                    if resolved_name:
+                        try:
+                            result_model.collection.update_many(
+                                {
+                                    'user_id': user_id,
+                                    '$or': [
+                                        {'user_name': {'$exists': False}},
+                                        {'user_name': None},
+                                        {'user_name': ''},
+                                        {'user_name': {'$regex': '^User\\s+'}}
+                                    ]
+                                },
+                                {'$set': {'user_name': resolved_name}}
+                            )
+                        except Exception:
+                            pass
                 else:
-                    result['user_name'] = f"User {user_id}"
+                    result['user_name'] = existing_name or f"User {user_id}"
             except Exception as e:
-                result['user_name'] = f"User {user_id}"
+                result['user_name'] = existing_name or f"User {user_id}"
 
         pdf_buffer = PDFGenerator.generate_quiz_report(quiz, results)
 

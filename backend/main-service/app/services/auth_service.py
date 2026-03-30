@@ -144,6 +144,12 @@ class AuthService:
         db.session.add(login_attempt)
         db.session.commit()
 
-        token = generate_token(user.id, user.email, user.role.value)
+        token = generate_token(
+            user.id,
+            user.email,
+            user.role.value,
+            user.first_name,
+            user.last_name
+        )
 
         return user, token

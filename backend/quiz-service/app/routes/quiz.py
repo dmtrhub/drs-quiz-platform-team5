@@ -25,12 +25,16 @@ def create_quiz():
     try:
         data = create_quiz_schema.load(request.get_json())
 
-        quiz = QuizService.create_quiz(data, g.user_id, g.user_email)
+        quiz = QuizService.create_quiz(data, g.user_id, g.user_email, g.user_role)
 
-        NotificationService.notify_quiz_created(serialize_quiz(quiz))
+        if quiz.get('status') == 'PENDING':
+            NotificationService.notify_quiz_created(serialize_quiz(quiz))
+            message = "Quiz created successfully and pending approval"
+        else:
+            message = "Quiz created successfully and auto-approved"
 
         return jsonify({
-            "message": "Quiz created successfully and pending approval",
+            "message": message,
             "quiz": serialize_quiz(quiz)
         }), 201
 

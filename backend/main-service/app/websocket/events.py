@@ -38,6 +38,11 @@ def register_socketio_events(socketio):
                 join_room(f'user_{user_id}')  
                 print(f"[WebSocket] User {user_id} joined moderator_room")
                 emit('authenticated', {'role': user_role, 'room': 'moderator_room'})
+            elif user_role == 'PLAYER':
+                join_room('players_room')
+                join_room(f'user_{user_id}')
+                print(f"[WebSocket] User {user_id} joined players_room")
+                emit('authenticated', {'role': user_role, 'room': 'players_room'})
             else:
                 join_room(f'user_{user_id}')
                 emit('authenticated', {'role': user_role})
@@ -64,6 +69,11 @@ def emit_quiz_approved(socketio, quiz_data, author_id):
     print(f"[WebSocket] Emitted quiz_approved to user_{author_id}")
 
 
+def emit_quiz_published(socketio, quiz_data):
+    socketio.emit('quiz_published', quiz_data, room='players_room')
+    print(f"[WebSocket] Emitted quiz_published to players_room")
+
+
 def emit_quiz_rejected(socketio, quiz_data, author_id):
     socketio.emit('quiz_rejected', quiz_data, room=f'user_{author_id}')
     print(f"[WebSocket] Emitted quiz_rejected to user_{author_id}")
@@ -75,4 +85,5 @@ def emit_quiz_deleted(socketio, quiz_data, deleted_by_role):
         print(f"[WebSocket] Emitted quiz_deleted to admin_room")
     elif deleted_by_role == 'ADMIN':
         socketio.emit('quiz_deleted', quiz_data, room='moderator_room')
+        socketio.emit('quiz_deleted', quiz_data, room='players_room')
         print(f"[WebSocket] Emitted quiz_deleted to moderator_room")

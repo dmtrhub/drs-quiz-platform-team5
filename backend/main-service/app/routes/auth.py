@@ -1,8 +1,11 @@
-from flask import Blueprint, request, jsonify
+from datetime import datetime, timezone
+from flask import Blueprint, request, jsonify, current_app
+from flask_jwt_extended import get_jwt
 from marshmallow import ValidationError
 from app.schemas.auth_schema import RegisterSchema, LoginSchema, AuthResponseSchema
 from app.services.auth_service import AuthService
 from app.services.email_service import EmailService
+from app.utils.decorators import token_required
 
 auth_bp = Blueprint('auth', __name__)
 
@@ -74,6 +77,19 @@ def login():
         return jsonify({"error": "Login failed"}), 500
 
 @auth_bp.route('/logout', methods=['POST'])
+@token_required
 def logout():
-    """Logout user"""
-    return jsonify({"message": "Logout successful"}), 200
+    """Logout user by revoking current token."""
+    try:
+        jwt_data = get_jwt()
+        jti = jwt_data.get('jti')
+        exp = jwt_data.get('exp')
+
+        if jti and exp:
+            now_ts = int(datetime.now(timezone.utc).timestamp())
+            ttl = max(exp - now_ts, 1)
+            current_app.redis_client.setex(f"revoked_token:{jti}", ttl, '1')
+
+        return jsonify({"message": "Logout successful"}), 200
+    except Exception:
+        return jsonify({"error": "Logout failed"}), 500

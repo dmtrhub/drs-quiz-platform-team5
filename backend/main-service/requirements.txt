@@ -27,3 +27,4 @@ python-decouple==3.8
 # SocketIO dependencies
 python-socketio==5.11.3
 python-engineio==4.9.1
+eventlet==0.36.1

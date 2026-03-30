@@ -5,12 +5,18 @@ from datetime import datetime
 
 class QuizService:
     @staticmethod
-    def create_quiz(quiz_data, author_id, author_email=None):
+    def create_quiz(quiz_data, author_id, author_email=None, author_role='MODERATOR'):
         quiz_model = current_app.quiz_model
 
         quiz_data['author_id'] = author_id
         quiz_data['author_email'] = author_email or 'unknown@mail.com'
-        quiz_data['status'] = 'PENDING'
+
+        if author_role == 'ADMIN':
+            quiz_data['status'] = 'APPROVED'
+            quiz_data['approved_by_admin_id'] = author_id
+            quiz_data['approval_notes'] = 'Auto-approved (created by admin)'
+        else:
+            quiz_data['status'] = 'PENDING'
 
         for question in quiz_data.get('questions', []):
             question['_id'] = ObjectId()

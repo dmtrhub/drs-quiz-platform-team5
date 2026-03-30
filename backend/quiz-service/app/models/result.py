@@ -28,6 +28,7 @@ class ResultModel:
             {'$group': {
                 '_id': '$user_id',
                 'user_id': {'$first': '$user_id'},
+                'user_name': {'$first': '$user_name'},
                 'score': {'$first': '$score'},
                 'max_score': {'$first': '$max_score'},
                 'time_spent_seconds': {'$first': '$time_spent_seconds'},

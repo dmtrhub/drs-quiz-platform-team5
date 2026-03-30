@@ -1,3 +1,4 @@
+from threading import Thread
 from flask import current_app
 from flask_mail import Mail, Message
 
@@ -43,12 +44,39 @@ Quiz Platform Team
 
     @staticmethod
     def send_role_change_email(user, old_role, new_role):
+        return EmailService._send_role_change_email_payload(
+            user.email,
+            user.first_name,
+            user.last_name,
+            old_role,
+            new_role,
+        )
+
+    @staticmethod
+    def send_role_change_email_async(user_email, first_name, last_name, old_role, new_role):
+        app = current_app._get_current_object()
+
+        def _worker():
+            with app.app_context():
+                EmailService._send_role_change_email_payload(
+                    user_email,
+                    first_name,
+                    last_name,
+                    old_role,
+                    new_role,
+                )
+
+        Thread(target=_worker, daemon=True).start()
+        return True
+
+    @staticmethod
+    def _send_role_change_email_payload(user_email, first_name, last_name, old_role, new_role):
         try:
             msg = Message(
                 subject="Your Role Has Been Updated",
-                recipients=[user.email],
+                recipients=[user_email],
                 body=f"""
-Hello {user.first_name} {user.last_name},
+Hello {first_name} {last_name},
 
 Your role on Quiz Platform has been updated.
 
@@ -66,7 +94,7 @@ Quiz Platform Team
                 mail.send(msg)
                 return True
             else:
-                print(f"[EMAIL] Role change email sent to {user.email}")
+                print(f"[EMAIL] Role change email sent to {user_email}")
                 return True
 
         except Exception as e:

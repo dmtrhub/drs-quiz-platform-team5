@@ -12,7 +12,7 @@ class QuizModel:
         """Create a new quiz"""
         quiz_data['created_at'] = datetime.utcnow()
         quiz_data['updated_at'] = datetime.utcnow()
-        quiz_data['status'] = 'PENDING'
+        quiz_data.setdefault('status', 'PENDING')
         result = self.collection.insert_one(quiz_data)
         return str(result.inserted_id)
 

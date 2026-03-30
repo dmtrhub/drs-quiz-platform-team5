@@ -11,6 +11,40 @@ import io
 class PDFGenerator:
 
     @staticmethod
+    def _format_points(value):
+        try:
+            number = float(value)
+        except (TypeError, ValueError):
+            return str(value)
+
+        if number.is_integer():
+            return str(int(number))
+
+        return f"{number:.2f}".rstrip('0').rstrip('.')
+
+    @staticmethod
+    def _format_duration(seconds_value):
+        try:
+            total_seconds = int(seconds_value)
+        except (TypeError, ValueError):
+            total_seconds = 0
+
+        if total_seconds <= 0:
+            return "0 minutes"
+
+        minutes, seconds = divmod(total_seconds, 60)
+
+        if minutes > 0 and seconds == 0:
+            return f"{minutes} minute" if minutes == 1 else f"{minutes} minutes"
+
+        if minutes == 0:
+            return f"{seconds} second" if seconds == 1 else f"{seconds} seconds"
+
+        minute_label = "minute" if minutes == 1 else "minutes"
+        second_label = "second" if seconds == 1 else "seconds"
+        return f"{minutes} {minute_label} {seconds} {second_label}"
+
+    @staticmethod
     def generate_quiz_report(quiz, results, output_path=None):
         """
         Generate a PDF report for a quiz with all results
@@ -45,7 +79,7 @@ class PDFGenerator:
         elements.append(Spacer(1, 0.2 * inch))
 
         quiz_info = [
-            ['Time Limit:', f"{quiz.get('duration_seconds', 0)} seconds"],
+            ['Time Limit:', PDFGenerator._format_duration(quiz.get('duration_seconds', 0))],
             ['Total Questions:', str(len(quiz.get('questions', [])))],
             ['Total Results:', str(len(results))],
             ['Report Generated:', datetime.utcnow().strftime('%Y-%m-%d %H:%M UTC')]
@@ -74,7 +108,7 @@ class PDFGenerator:
                 str(idx),
                 str(result.get('user_id', 'N/A')),
                 result.get('user_name', 'N/A'),
-                f"{result.get('score', 0)}/{result.get('max_score', 0)}",
+                f"{PDFGenerator._format_points(result.get('score', 0))}/{PDFGenerator._format_points(result.get('max_score', 0))}",
                 str(result.get('time_spent_seconds', 0)),
                 result.get('submitted_at', datetime.utcnow()).strftime('%Y-%m-%d %H:%M') if isinstance(result.get('submitted_at'), datetime) else 'N/A'
             ])
@@ -123,7 +157,7 @@ class PDFGenerator:
             ['User:', f"{user_info.get('first_name', '')} {user_info.get('last_name', '')}"],
             ['Email:', user_info.get('email', 'N/A')],
             ['Quiz:', quiz.get('title', 'N/A')],
-            ['Score:', f"{result.get('score', 0)} / {result.get('max_score', 0)} points"],
+            ['Score:', f"{PDFGenerator._format_points(result.get('score', 0))}/{PDFGenerator._format_points(result.get('max_score', 0))} points"],
             ['Rank:', f"#{result.get('ranked_position', 'N/A')}"],
             ['Time Spent:', f"{result.get('time_spent_seconds', 0)} seconds"]
         ]

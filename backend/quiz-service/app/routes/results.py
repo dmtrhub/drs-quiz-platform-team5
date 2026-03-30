@@ -1,4 +1,4 @@
-from flask import Blueprint, request, jsonify, g
+from flask import Blueprint, request, jsonify, g, current_app
 from marshmallow import ValidationError
 from bson import json_util
 import json
@@ -25,9 +25,22 @@ def submit_quiz():
         if not quiz_id:
             return jsonify({"error": "quiz_id parameter required"}), 400
 
+        quiz = current_app.quiz_model.find_quiz_by_id(quiz_id)
+        if not quiz:
+            return jsonify({"error": "Quiz not found"}), 404
+
+        if g.user_role == 'PLAYER' and quiz.get('status') != 'APPROVED':
+            return jsonify({"error": "Quiz is not available for players"}), 403
+
+        duration_seconds = quiz.get('duration_seconds')
+        if isinstance(duration_seconds, int) and data['time_spent_seconds'] > duration_seconds:
+            return jsonify({"error": "Quiz time limit exceeded"}), 400
+
         result = ResultProcessor.submit_quiz_async(
             quiz_id=quiz_id,
             user_id=g.user_id,
+            user_first_name=getattr(g, 'user_first_name', ''),
+            user_last_name=getattr(g, 'user_last_name', ''),
             submitted_answers=data['answers'],
             time_spent_seconds=data['time_spent_seconds']
         )

@@ -14,6 +14,8 @@ def token_required(func):
             g.user_id = int(user_id) if isinstance(user_id, str) else user_id
             g.user_role = jwt_data.get('role')
             g.user_email = jwt_data.get('email')
+            g.user_first_name = jwt_data.get('first_name', '')
+            g.user_last_name = jwt_data.get('last_name', '')
 
             return func(*args, **kwargs)
         except Exception as e:
