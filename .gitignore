@@ -1,5 +1,8 @@
 /Setup.txt
 /backend/main-service/config.py
+/backend/main-service/.env
+/backend/quiz-service/.env
+/.env
 
 .idea/
 .vscode/
