@@ -1,0 +1,18 @@
+{
+  "/api": {
+    "target": "http://main-service:5000",
+    "secure": false,
+    "changeOrigin": true,
+    "pathRewrite": {
+      "^/api": ""
+    },
+    "logLevel": "warn"
+  },
+  "/socket.io": {
+    "target": "http://main-service:5000",
+    "secure": false,
+    "ws": true,
+    "changeOrigin": true,
+    "logLevel": "warn"
+  }
+}

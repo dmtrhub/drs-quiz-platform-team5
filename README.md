@@ -76,6 +76,18 @@ Main goals were:
 - Docker
 - Docker Compose
 
+### Quick Reviewer Setup (2 Minutes)
+
+Before first start, create service env files from committed templates:
+
+1. Copy `backend/main-service/.env.example` to `backend/main-service/.env`
+2. Copy `backend/quiz-service/.env.example` to `backend/quiz-service/.env`
+
+Notes:
+
+- `.env` files are intentionally gitignored, so reviewers create them locally.
+- If you keep template values unchanged, default seeded admin password is `change-me-now`.
+
 ### Start
 
 From project root:
@@ -86,7 +98,7 @@ docker compose up --build
 
 Services:
 
-- Frontend: http://localhost
+- Frontend (dev): http://localhost:4200 (or `http://localhost:${FRONTEND_PORT}` if overridden in root `.env`)
 - Main Service: http://localhost:5000
 - Quiz Service: http://localhost:5001
 
@@ -95,7 +107,8 @@ Services:
 Main Service seeds/elevates an admin user on startup:
 
 - Email: `admin@quizplatform.com`
-- Password: `Admin123!`
+- Password: value from `ADMIN_PASSWORD` in `backend/main-service/.env`
+- For quick local testing with unchanged template values: `change-me-now`
 
 ## Environment Configuration
 
@@ -127,6 +140,28 @@ Notes:
 ## Team Project Note
 
 This was developed as a team course project.
+
+## CI/CD Automation
+
+Repository now includes path-scoped GitHub Actions workflows:
+
+- `.github/workflows/frontend-ci-cd.yml`
+- `.github/workflows/backend-ci-cd.yml`
+
+Both workflows:
+
+- trigger on push to `main` when matching paths change
+- build production images from `Dockerfile.prod`
+- push images to GHCR (`ghcr.io/<owner>/...`)
+- can optionally trigger Render deploy hooks
+
+Optional secrets for deploy hooks:
+
+- `FRONTEND_RENDER_DEPLOY_HOOK`
+- `MAIN_SERVICE_RENDER_DEPLOY_HOOK`
+- `QUIZ_SERVICE_RENDER_DEPLOY_HOOK`
+
+Local Docker Compose is configured to use `Dockerfile.dev` variants for faster development iteration.
 
 ## Current Gaps / Next Steps
 

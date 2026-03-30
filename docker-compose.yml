@@ -58,7 +58,7 @@ services:
   main-service:
     build:
       context: ./backend/main-service
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.dev
     container_name: quiz-main-service
     env_file:
       - ./backend/main-service/.env
@@ -77,7 +77,7 @@ services:
   quiz-service:
     build:
       context: ./backend/quiz-service
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.dev
     container_name: quiz-quiz-service
     env_file:
       - ./backend/quiz-service/.env
@@ -95,10 +95,10 @@ services:
   frontend:
     build:
       context: ./frontend/quiz-platform-ui
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.dev
     container_name: quiz-frontend
     ports:
-      - "${FRONTEND_PORT:-80}:80"
+      - "${FRONTEND_PORT:-4200}:4200"
     depends_on:
       - main-service
       - quiz-service
