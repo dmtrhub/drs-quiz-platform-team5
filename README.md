@@ -1,10 +1,135 @@
-# DRS – Quiz Platform (Team 5)
+# DRS Quiz Platform (Team 5)
 
-Ovo je zajednički repozitorijum za projekat iz predmeta **Distribuirani računarski sistemi**.
+A distributed quiz platform built as a university project for the Distributed Computer Systems course.
 
-Repozitorijum je trenutno postavljen kako bismo imali zajedničko mesto za rad i razmenili kontakte:
+This repository contains the team project implementation, plus a follow-up stabilization pass with practical fixes and UX improvements.
 
-- 💬 Discord: https://discord.gg/w8SWbXsN
-- 📧 Email: dmtr.develop@gmail.com
+## Project Goal
 
-Repo je za sada prazan. Kada se dogovorimo kao tim, dodaćemo strukturu projekta i krenuti sa razvojem.
+The assignment was focused on designing and implementing a distributed system, not just a local CRUD app.
+
+Main goals were:
+
+- service separation and clear responsibilities
+- SQL + NoSQL data model in one system
+- inter-service communication
+- asynchronous processing
+- real-time updates
+
+## What Was Built
+
+- Microservice-based architecture with separate Main and Quiz services.
+- Role-based access model (`PLAYER`, `MODERATOR`, `ADMIN`).
+- Quiz approval workflow (`PENDING`, `APPROVED`, `REJECTED`).
+- Real-time notifications using WebSockets.
+- Asynchronous result processing and email notifications.
+- Leaderboard and PDF reporting.
+- Containerized local environment with Docker Compose.
+
+## Tech Stack
+
+- Frontend: Angular, TypeScript, RxJS
+- Backend: Python, Flask, Flask-SocketIO, Flask-JWT-Extended
+- Databases: PostgreSQL, MongoDB, Redis
+- Infrastructure: Docker, Docker Compose, Nginx
+- Reporting: ReportLab (PDF)
+
+## Architecture Overview
+
+### Frontend (`frontend/quiz-platform-ui`)
+
+- Angular SPA
+- Authentication, profile, quiz browsing/solving, leaderboard, results, review screens
+- Nginx reverse proxy for API and WebSocket traffic
+
+### Main Service (`backend/main-service`)
+
+- User/auth domain (JWT, roles, profile management)
+- Redis-backed token revocation and login-attempt lockout
+- WebSocket event hub
+- Proxy layer toward Quiz Service
+
+### Quiz Service (`backend/quiz-service`)
+
+- Quiz CRUD and moderation status flow
+- Async submission processing
+- Leaderboard and PDF report generation
+
+### Data Stores
+
+- PostgreSQL for relational user/auth data
+- MongoDB for quiz/result domain
+- Redis for cache and security-related state
+
+## Security and Reliability
+
+- JWT authentication with token revocation on logout
+- Route-level role guards
+- Internal service protection via `X-Internal-Token`
+- Server-side validation on quiz submissions
+- Async processing to keep user-facing responses fast
+
+## Running Locally
+
+### Prerequisites
+
+- Docker
+- Docker Compose
+
+### Start
+
+From project root:
+
+```bash
+docker compose up --build
+```
+
+Services:
+
+- Frontend: http://localhost
+- Main Service: http://localhost:5000
+- Quiz Service: http://localhost:5001
+
+### Default Admin
+
+Main Service seeds/elevates an admin user on startup:
+
+- Email: `admin@quizplatform.com`
+- Password: `Admin123!`
+
+## Environment Configuration
+
+Service-level env files:
+
+- `backend/main-service/.env`
+- `backend/quiz-service/.env`
+
+Templates:
+
+- `backend/main-service/.env.example`
+- `backend/quiz-service/.env.example`
+
+For real email delivery, valid SMTP settings must be set in Main Service `.env`.
+
+## Multi-Computer Usage (Same Network)
+
+Yes, multiple users can use the same running instance at the same time.
+
+If the stack is running on one host machine, other devices on the same LAN can open:
+
+- `http://<HOST_LOCAL_IP>`
+
+Notes:
+
+- Do not use `localhost` from other devices.
+- Allow inbound access through the host firewall.
+
+## Team Project Note
+
+This was developed as a team course project.
+
+## Current Gaps / Next Steps
+
+- Add a formal automated test suite (unit/integration/e2e).
+- Add CI pipeline for validation on pull requests.
+- Prepare production-grade deployment and scaling setup for WebSocket-heavy workloads.
