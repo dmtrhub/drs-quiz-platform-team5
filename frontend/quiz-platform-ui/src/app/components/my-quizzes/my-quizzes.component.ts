@@ -4,6 +4,7 @@ import { Router, RouterLink } from '@angular/router';
 import { QuizService } from '../../services/quiz.service';
 import { AuthService } from '../../services/auth.service';
 import { WebSocketService } from '../../services/websocket.service';
+import { NotificationService } from '../../services/notification.service';
 import { Subscription } from 'rxjs';
 
 @Component({
@@ -24,7 +25,8 @@ export class MyQuizzesComponent implements OnInit, OnDestroy {
     private quizService: QuizService,
     private authService: AuthService,
     private router: Router,
-    private wsService: WebSocketService
+    private wsService: WebSocketService,
+    private notificationService: NotificationService
   ) {}
 
   ngOnInit(): void {
@@ -40,8 +42,7 @@ export class MyQuizzesComponent implements OnInit, OnDestroy {
     // Subscribe to quiz approval notifications
     this.wsSubscriptions.push(
       this.wsService.quizApproved$.subscribe({
-        next: (data: any) => {
-          console.log('MyQuizzes - Quiz approved notification:', data);
+        next: () => {
           this.loadMyQuizzes();
         }
       })
@@ -50,8 +51,7 @@ export class MyQuizzesComponent implements OnInit, OnDestroy {
     // Subscribe to quiz rejection notifications
     this.wsSubscriptions.push(
       this.wsService.quizRejected$.subscribe({
-        next: (data: any) => {
-          console.log('MyQuizzes - Quiz rejected notification:', data);
+        next: () => {
           this.loadMyQuizzes();
         }
       })
@@ -60,8 +60,7 @@ export class MyQuizzesComponent implements OnInit, OnDestroy {
     // Subscribe to quiz deleted notifications
     this.wsSubscriptions.push(
       this.wsService.quizDeleted$.subscribe({
-        next: (data: any) => {
-          console.log('MyQuizzes - Quiz deleted notification:', data);
+        next: () => {
           this.loadMyQuizzes();
         }
       })
@@ -70,21 +69,19 @@ export class MyQuizzesComponent implements OnInit, OnDestroy {
 
   loadMyQuizzes(): void {
     this.isLoading = true;
-    console.log('MyQuizzes - Loading quizzes...');
-    console.log('MyQuizzes - Token:', localStorage.getItem('access_token'));
-    console.log('MyQuizzes - User:', localStorage.getItem('user'));
 
     this.quizService.getMyQuizzes().subscribe({
       next: (data) => {
-        console.log('MyQuizzes - Success:', data);
         this.quizzes = data;
         this.isLoading = false;
       },
       error: (error) => {
-        console.error('MyQuizzes - Error:', error);
-        console.error('MyQuizzes - Error status:', error.status);
-        console.error('MyQuizzes - Error message:', error.error);
-        this.errorMessage = error.error?.message || 'Failed to load quizzes';
+        if (error?.status === 401) {
+          this.authService.logout();
+          this.router.navigate(['/login'], { queryParams: { sessionExpired: 'true' } });
+          return;
+        }
+        this.errorMessage = error.error?.error || error.error?.message || 'Failed to load quizzes';
         this.isLoading = false;
       }
     });
@@ -95,24 +92,57 @@ export class MyQuizzesComponent implements OnInit, OnDestroy {
     this.router.navigate(['/quiz', id]);
   }
 
-  editQuiz(quizId: any): void {
+  isQuizOpenable(quiz: any): boolean {
+    return quiz?.status === 'APPROVED';
+  }
+
+  onQuizCardClick(quiz: any): void {
+    if (!this.isQuizOpenable(quiz)) {
+      return;
+    }
+    this.viewQuiz(quiz?._id);
+  }
+
+  editQuiz(quizId: any, event?: Event): void {
+    event?.stopPropagation();
     const id = quizId?.$oid || quizId;
     this.router.navigate(['/quiz/edit', id]);
   }
 
-  deleteQuiz(quizId: any): void {
-    if (!confirm('Are you sure you want to delete this quiz?')) {
+  async deleteQuiz(quizId: any, event?: Event): Promise<void> {
+    event?.stopPropagation();
+    const id = quizId?.$oid || quizId;
+
+    if (!id) {
+      this.notificationService.error('Invalid quiz ID');
       return;
     }
 
-    const id = quizId?.$oid || quizId;
+    const confirmed = await this.notificationService.confirm({
+      title: 'Delete Quiz',
+      message: 'Are you sure you want to permanently delete this quiz?',
+      confirmText: 'Delete',
+      cancelText: 'Cancel',
+      variant: 'danger'
+    });
+
+    if (!confirmed) {
+      return;
+    }
 
     this.quizService.deleteQuiz(id).subscribe({
       next: () => {
-        this.loadMyQuizzes();
+        this.quizzes = this.quizzes.filter((quiz) => {
+          const currentId = quiz?._id?.$oid || quiz?._id;
+          return currentId !== id;
+        });
+        this.successMessage = 'Quiz deleted successfully';
+        this.notificationService.success('Quiz deleted successfully');
+        setTimeout(() => this.successMessage = '', 2500);
       },
       error: (error) => {
-        this.errorMessage = error.error?.message || 'Failed to delete quiz';
+        this.errorMessage = error.error?.error || error.error?.message || 'Failed to delete quiz';
+        this.notificationService.error(this.errorMessage);
       }
     });
   }
@@ -143,5 +173,24 @@ export class MyQuizzesComponent implements OnInit, OnDestroy {
     }
     // Handle ISO string or timestamp
     return new Date(createdAt);
+  }
+
+  formatDuration(secondsValue: any): string {
+    const totalSeconds = Number(secondsValue || 0);
+    if (!Number.isFinite(totalSeconds) || totalSeconds <= 0) {
+      return '0 sec';
+    }
+
+    if (totalSeconds < 60) {
+      return `${totalSeconds} sec`;
+    }
+
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    if (seconds === 0) {
+      return `${minutes} min`;
+    }
+
+    return `${minutes} min ${seconds} sec`;
   }
 }

@@ -116,7 +116,7 @@ export class QuizFormComponent implements OnInit {
     
     const quizData = {
       title: this.quiz.title,
-      duration_seconds: this.quiz.time_limit, // Backend expects duration_seconds
+      duration_seconds: this.quiz.time_limit,
       questions: this.quiz.questions.map((q: any, qIndex: number) => ({
         order: qIndex,
         text: q.text,
@@ -129,27 +129,20 @@ export class QuizFormComponent implements OnInit {
       }))
     };
 
-    console.log('QuizForm - Submitting quiz data:', JSON.stringify(quizData, null, 2));
-
     const request = this.isEditMode && this.quizId
       ? this.quizService.updateQuiz(this.quizId, quizData)
       : this.quizService.createQuiz(quizData);
 
     request.subscribe({
-      next: () => {
+      next: (response: any) => {
         this.isLoading = false;
-        this.successMessage = this.isEditMode
-          ? 'Quiz updated successfully! It will be reviewed by an admin.'
-          : 'Quiz created successfully! It will be pending until an admin approves it.';
+        this.successMessage = response?.message || (this.isEditMode
+          ? 'Quiz updated successfully!'
+          : 'Quiz created successfully!');
 
-     
-        setTimeout(() => {
-          this.router.navigate(['/my-quizzes']);
-        }, 2000);
+        this.router.navigate(['/my-quizzes']);
       },
       error: (error) => {
-        console.error('QuizForm - Submit error:', error);
-        console.error('QuizForm - Error details:', error.error);
         this.errorMessage = error.error?.error || error.error?.message || `Failed to ${this.isEditMode ? 'update' : 'create'} quiz`;
         this.isLoading = false;
       }
@@ -159,6 +152,11 @@ export class QuizFormComponent implements OnInit {
   validateQuiz(): boolean {
     if (!this.quiz.title) {
       this.errorMessage = 'Please enter a quiz title';
+      return false;
+    }
+
+    if (!this.quiz.time_limit || this.quiz.time_limit < 20) {
+      this.errorMessage = 'Time limit must be at least 20 seconds';
       return false;
     }
 
@@ -172,6 +170,11 @@ export class QuizFormComponent implements OnInit {
 
       if (!q.text) {
         this.errorMessage = `Question ${i + 1}: Please enter question text`;
+        return false;
+      }
+
+      if (!q.points || q.points < 1) {
+        this.errorMessage = `Question ${i + 1}: Points must be at least 1`;
         return false;
       }
 

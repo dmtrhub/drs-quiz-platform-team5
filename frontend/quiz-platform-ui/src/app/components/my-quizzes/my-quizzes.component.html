@@ -16,7 +16,11 @@
   </div>
 
   <div class="quizzes-list" *ngIf="!isLoading && quizzes.length > 0">
-    <div class="quiz-card" *ngFor="let quiz of quizzes">
+    <div
+      class="quiz-card"
+      [class.clickable]="isQuizOpenable(quiz)"
+      *ngFor="let quiz of quizzes"
+      (click)="onQuizCardClick(quiz)">
       <div class="quiz-header">
         <h3>{{ quiz.title }}</h3>
         <span class="status-badge" [ngClass]="getStatusClass(quiz.status)">
@@ -25,9 +29,20 @@
       </div>
 
       <div class="quiz-info">
-        <p><strong>Questions:</strong> {{ quiz.questions?.length || 0 }}</p>
-        <p><strong>Time Limit:</strong> {{ quiz.duration_seconds }} seconds</p>
-        <p><strong>Created:</strong> {{ getCreatedDate(quiz.created_at) | date:'short' }}</p>
+        <div class="quiz-info-grid">
+          <div class="info-chip">
+            <span class="info-label">Questions</span>
+            <span class="info-value">{{ quiz.questions?.length || 0 }}</span>
+          </div>
+          <div class="info-chip">
+            <span class="info-label">Time Limit</span>
+            <span class="info-value">{{ formatDuration(quiz.duration_seconds) }}</span>
+          </div>
+          <div class="info-chip">
+            <span class="info-label">Created</span>
+            <span class="info-value">{{ getCreatedDate(quiz.created_at) | date:'short' }}</span>
+          </div>
+        </div>
       </div>
 
       <div class="quiz-feedback" *ngIf="quiz.status === 'REJECTED' && quiz.rejection_reason">
@@ -45,16 +60,15 @@
       </div>
 
       <div class="quiz-actions">
-        <button class="btn btn-primary" (click)="viewQuiz(quiz._id)" *ngIf="quiz.status === 'APPROVED'">
-          View Quiz
-        </button>
-        <button class="btn btn-secondary" (click)="editQuiz(quiz._id)" *ngIf="quiz.status !== 'APPROVED'">
+        <button class="btn btn-secondary" (click)="editQuiz(quiz._id, $event)" *ngIf="quiz.status !== 'APPROVED'">
           Edit
         </button>
-        <button class="btn btn-danger" (click)="deleteQuiz(quiz._id)">
+        <button class="btn btn-danger" (click)="deleteQuiz(quiz._id, $event)">
           Delete
         </button>
       </div>
+
+      <div class="card-open-hint" *ngIf="isQuizOpenable(quiz)">Click card to open quiz details</div>
     </div>
   </div>
 

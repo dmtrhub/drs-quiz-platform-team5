@@ -1,8 +1,11 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, RouterLink } from '@angular/router';
 import { QuizService } from '../../services/quiz.service';
 import { AuthService } from '../../services/auth.service';
+import { NotificationService } from '../../services/notification.service';
+import { WebSocketService } from '../../services/websocket.service';
+import { Subscription } from 'rxjs';
 
 @Component({
   selector: 'app-quiz-list',
@@ -11,17 +14,22 @@ import { AuthService } from '../../services/auth.service';
   templateUrl: './quiz-list.component.html',
   styleUrl: './quiz-list.component.css'
 })
-export class QuizListComponent implements OnInit {
+export class QuizListComponent implements OnInit, OnDestroy {
   quizzes: any[] = [];
   filteredQuizzes: any[] = [];
   isLoading = true;
   errorMessage = '';
   currentUser: any = null;
   filterStatus: string = 'APPROVED';
+  private wsSubscriptions: Subscription[] = [];
+  private liveReloadTimer: ReturnType<typeof setTimeout> | null = null;
+  private readonly liveReloadDebounceMs = 250;
 
   constructor(
     private quizService: QuizService,
     private authService: AuthService,
+    private notificationService: NotificationService,
+    private wsService: WebSocketService,
     private router: Router
   ) {}
 
@@ -35,7 +43,59 @@ export class QuizListComponent implements OnInit {
         return;
       }
     });
+    this.subscribeToWebSocket();
     this.loadQuizzes();
+  }
+
+  ngOnDestroy(): void {
+    this.wsSubscriptions.forEach((sub) => sub.unsubscribe());
+    if (this.liveReloadTimer) {
+      clearTimeout(this.liveReloadTimer);
+      this.liveReloadTimer = null;
+    }
+  }
+
+  private scheduleLiveReload(): void {
+    if (this.liveReloadTimer) {
+      clearTimeout(this.liveReloadTimer);
+    }
+
+    this.liveReloadTimer = setTimeout(() => {
+      this.liveReloadTimer = null;
+      this.loadQuizzes();
+    }, this.liveReloadDebounceMs);
+  }
+
+  private subscribeToWebSocket(): void {
+    this.wsSubscriptions.push(
+      this.wsService.quizDeleted$.subscribe({
+        next: () => this.scheduleLiveReload()
+      })
+    );
+
+    this.wsSubscriptions.push(
+      this.wsService.quizCreated$.subscribe({
+        next: () => this.scheduleLiveReload()
+      })
+    );
+
+    this.wsSubscriptions.push(
+      this.wsService.quizApproved$.subscribe({
+        next: () => this.scheduleLiveReload()
+      })
+    );
+
+    this.wsSubscriptions.push(
+      this.wsService.quizPublished$.subscribe({
+        next: () => this.scheduleLiveReload()
+      })
+    );
+
+    this.wsSubscriptions.push(
+      this.wsService.quizRejected$.subscribe({
+        next: () => this.scheduleLiveReload()
+      })
+    );
   }
 
   loadQuizzes(): void {
@@ -52,6 +112,11 @@ export class QuizListComponent implements OnInit {
         this.isLoading = false;
       },
       error: (error) => {
+        if (error?.status === 401) {
+          this.authService.logout();
+          this.router.navigate(['/login'], { queryParams: { sessionExpired: 'true' } });
+          return;
+        }
         this.errorMessage = 'Failed to load quizzes. Please try again.';
         this.isLoading = false;
       }
@@ -72,55 +137,195 @@ export class QuizListComponent implements OnInit {
     return this.currentUser && this.currentUser.role === 'ADMIN';
   }
 
+  isPlayer(): boolean {
+    return this.currentUser?.role === 'PLAYER';
+  }
+
+  showAuthorInfo(): boolean {
+    return !this.isPlayer();
+  }
+
+  getQuestionCount(quiz: any): number {
+    return Array.isArray(quiz?.questions) ? quiz.questions.length : 0;
+  }
+
+  getDurationSeconds(quiz: any): number {
+    const duration = Number(quiz?.duration_seconds ?? quiz?.time_limit ?? 0);
+    return Number.isFinite(duration) && duration > 0 ? duration : 0;
+  }
+
+  formatDurationForCard(quiz: any): string {
+    const totalSeconds = this.getDurationSeconds(quiz);
+
+    if (totalSeconds >= 60) {
+      const minutes = Math.floor(totalSeconds / 60);
+      const seconds = totalSeconds % 60;
+      if (seconds === 0) {
+        return `${minutes} min`;
+      }
+      return `${minutes} min ${seconds} sec`;
+    }
+
+    return `${totalSeconds} sec`;
+  }
+
+  // Arrow function keeps component context when Angular calls trackBy.
+  trackByQuizId = (index: number, quiz: any): string => {
+    const id = this.normalizeQuizId(quiz?._id);
+    return id || String(index);
+  };
+
+  private normalizeQuizId(quizId: any): string {
+    if (!quizId) {
+      return '';
+    }
+    if (typeof quizId === 'string') {
+      return quizId;
+    }
+    if (quizId?.$oid && typeof quizId.$oid === 'string') {
+      return quizId.$oid;
+    }
+    return String(quizId);
+  }
+
   viewQuiz(quizId: any): void {
-    const id = quizId?.$oid || quizId;
+    const id = this.normalizeQuizId(quizId);
     this.router.navigate(['/quiz', id]);
+  }
+
+  onCardClick(quiz: any): void {
+    if (this.isPlayer()) {
+      return;
+    }
+    this.viewQuiz(quiz?._id);
+  }
+
+  async startQuizFromCard(quiz: any, event: Event): Promise<void> {
+    event.stopPropagation();
+    const id = this.normalizeQuizId(quiz?._id);
+    if (!id) {
+      this.notificationService.error('Invalid quiz ID');
+      return;
+    }
+
+    const title = (quiz?.title || 'Untitled Quiz').trim();
+    const confirmed = await this.notificationService.confirm({
+      title: 'Start Quiz',
+      message: `Start "${title}" now?`,
+      confirmText: 'Start',
+      cancelText: 'Cancel',
+      variant: 'primary'
+    });
+
+    if (!confirmed) {
+      return;
+    }
+
+    this.router.navigate(['/quiz', id], { queryParams: { autostart: 'true' } });
+  }
+
+  openLeaderboardFromCard(quizId: any, event: Event): void {
+    event.stopPropagation();
+    const id = this.normalizeQuizId(quizId);
+    if (!id) {
+      this.notificationService.error('Invalid quiz ID');
+      return;
+    }
+    this.router.navigate(['/leaderboard'], { state: { preselectedQuizId: id } });
   }
 
   createQuiz(): void {
     this.router.navigate(['/quiz/create']);
   }
 
-  approveQuiz(quizId: string, event: Event): void {
-    event.stopPropagation();
-    if (confirm('Are you sure you want to approve this quiz?')) {
-      this.quizService.approveQuiz(quizId, {}).subscribe({
-        next: () => {
-          this.loadQuizzes();
-        },
-        error: (error) => {
-          alert('Failed to approve quiz: ' + (error.error?.message || 'Unknown error'));
-        }
-      });
-    }
+  private removeQuizFromLocalLists(quizId: string): void {
+    this.quizzes = this.quizzes.filter((quiz) => this.normalizeQuizId(quiz._id) !== quizId);
+    this.filteredQuizzes = this.filteredQuizzes.filter((quiz) => this.normalizeQuizId(quiz._id) !== quizId);
   }
 
-  rejectQuiz(quizId: string, event: Event): void {
+  async approveQuiz(quizId: any, event: Event): Promise<void> {
     event.stopPropagation();
+    const id = this.normalizeQuizId(quizId);
+    if (!id) {
+      this.notificationService.error('Invalid quiz ID');
+      return;
+    }
+    const confirmed = await this.notificationService.confirm({
+      title: 'Approve Quiz',
+      message: 'Do you want to approve this quiz now?',
+      confirmText: 'Approve',
+      cancelText: 'Cancel',
+      variant: 'primary'
+    });
+    if (!confirmed) {
+      return;
+    }
+
+    this.quizService.approveQuiz(id, {}).subscribe({
+      next: () => {
+        this.notificationService.success('Quiz approved successfully');
+        this.loadQuizzes();
+      },
+      error: (error) => {
+        this.notificationService.error(
+          error.error?.error || error.error?.message || 'Failed to approve quiz'
+        );
+      }
+    });
+  }
+
+  rejectQuiz(quizId: any, event: Event): void {
+    event.stopPropagation();
+    const id = this.normalizeQuizId(quizId);
+    if (!id) {
+      this.notificationService.error('Invalid quiz ID');
+      return;
+    }
     const reason = prompt('Enter rejection reason:');
-    if (reason) {
-      this.quizService.rejectQuiz(quizId, reason).subscribe({
+    const trimmedReason = (reason || '').trim();
+    if (trimmedReason) {
+      this.quizService.rejectQuiz(id, { reason: trimmedReason }).subscribe({
         next: () => {
+          this.notificationService.info('Quiz rejected');
           this.loadQuizzes();
         },
         error: (error) => {
-          alert('Failed to reject quiz: ' + (error.error?.message || 'Unknown error'));
+          this.notificationService.error(
+            error.error?.error || error.error?.message || 'Failed to reject quiz'
+          );
         }
       });
     }
   }
 
-  deleteQuiz(quizId: string, event: Event): void {
+  async deleteQuiz(quizId: any, event: Event): Promise<void> {
     event.stopPropagation();
-    if (confirm('Are you sure you want to delete this quiz? This cannot be undone.')) {
-      this.quizService.deleteQuiz(quizId).subscribe({
-        next: () => {
-          this.loadQuizzes();
-        },
-        error: (error) => {
-          alert('Failed to delete quiz: ' + (error.error?.message || 'Unknown error'));
-        }
-      });
+    const id = this.normalizeQuizId(quizId);
+    if (!id) {
+      this.notificationService.error('Invalid quiz ID');
+      return;
     }
+    const confirmed = await this.notificationService.confirm({
+      title: 'Delete Quiz',
+      message: 'This quiz will be permanently deleted. This action cannot be undone.',
+      confirmText: 'Delete',
+      cancelText: 'Cancel',
+      variant: 'danger'
+    });
+    if (!confirmed) {
+      return;
+    }
+
+    this.quizService.deleteQuiz(id).subscribe({
+      next: () => {
+        this.removeQuizFromLocalLists(id);
+        this.notificationService.success('Quiz deleted successfully');
+      },
+      error: (error) => {
+        this.notificationService.error(
+          error.error?.error || error.error?.message || 'Failed to delete quiz'
+        );
+      }
+    });
   }
 }

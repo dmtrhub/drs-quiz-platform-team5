@@ -120,8 +120,12 @@ export class LeaderboardComponent implements OnInit {
     this.notificationService.info('Generating PDF report...');
 
     this.quizService.createPdfReport(quizIdToReport).subscribe({
-      next: (response) => {
-        this.notificationService.success('PDF report has been sent to your email');
+      next: (response: any) => {
+        const message = response?.message || 'PDF report has been generated';
+        this.notificationService.success(message);
+        if (response?.warning) {
+          this.notificationService.info(response.warning);
+        }
       },
       error: (error) => {
         this.notificationService.error(error.error?.error || 'Failed to create PDF report');

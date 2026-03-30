@@ -1,5 +1,11 @@
 <div class="quiz-review-container">
-  <h2>Quiz Review</h2>
+  <div class="review-header">
+    <div>
+      <h2>Quiz Review</h2>
+      <p class="review-subtitle">Review pending quizzes and approve or reject with clear feedback.</p>
+    </div>
+    <div class="pending-badge">Pending {{ pendingQuizzes.length }}</div>
+  </div>
 
   <div class="success-message" *ngIf="successMessage">
     {{ successMessage }}
@@ -15,22 +21,38 @@
 
   <div class="content" *ngIf="!isLoading">
     <div class="quizzes-list">
-      <h3>Pending Quizzes ({{ pendingQuizzes.length }})</h3>
+      <h3>Pending Quizzes</h3>
 
       <div class="empty-state" *ngIf="pendingQuizzes.length === 0">
         <p>No quizzes pending review.</p>
       </div>
 
-      <div class="quiz-item" *ngFor="let quiz of pendingQuizzes">
+      <div class="quiz-item" [class.selected]="isSelectedQuiz(quiz)" *ngFor="let quiz of pendingQuizzes">
         <div class="quiz-summary">
           <h4>{{ quiz.title }}</h4>
-          <p><strong>Author:</strong> {{ quiz.author_email || 'Unknown' }}</p>
-          <p><strong>Questions:</strong> {{ quiz.questions?.length || 0 }}</p>
-          <p><strong>Submitted:</strong> {{ getCreatedDate(quiz.created_at) | date:'short' }}</p>
+
+          <div class="summary-grid">
+            <div class="summary-chip">
+              <span class="chip-label">Author</span>
+              <span class="chip-value">{{ quiz.author_email || 'Unknown' }}</span>
+            </div>
+            <div class="summary-chip">
+              <span class="chip-label">Questions</span>
+              <span class="chip-value">{{ quiz.questions?.length || 0 }}</span>
+            </div>
+            <div class="summary-chip">
+              <span class="chip-label">Time Limit</span>
+              <span class="chip-value">{{ formatDuration(quiz.duration_seconds) }}</span>
+            </div>
+            <div class="summary-chip">
+              <span class="chip-label">Submitted</span>
+              <span class="chip-value">{{ getCreatedDate(quiz.created_at) | date:'short' }}</span>
+            </div>
+          </div>
         </div>
         <div class="quiz-item-actions">
-          <button class="btn btn-primary" (click)="viewQuiz(quiz)">Review</button>
-          <button class="btn btn-danger" (click)="deleteQuiz(quiz._id)">Delete</button>
+          <button class="btn btn-primary btn-sm" (click)="viewQuiz(quiz)">Review</button>
+          <button class="btn btn-danger btn-sm" (click)="deleteQuiz(quiz._id)">Delete</button>
         </div>
       </div>
     </div>
@@ -42,9 +64,20 @@
       </div>
 
       <div class="detail-info">
-        <p><strong>Author:</strong> {{ selectedQuiz.author_email || 'Unknown' }}</p>
-        <p><strong>Time Limit:</strong> {{ selectedQuiz.duration_seconds }} seconds</p>
-        <p><strong>Total Questions:</strong> {{ selectedQuiz.questions?.length || 0 }}</p>
+        <div class="detail-info-grid">
+          <div class="detail-info-chip">
+            <span class="chip-label">Author</span>
+            <span class="chip-value">{{ selectedQuiz.author_email || 'Unknown' }}</span>
+          </div>
+          <div class="detail-info-chip">
+            <span class="chip-label">Time Limit</span>
+            <span class="chip-value">{{ formatDuration(selectedQuiz.duration_seconds) }}</span>
+          </div>
+          <div class="detail-info-chip">
+            <span class="chip-label">Total Questions</span>
+            <span class="chip-value">{{ selectedQuiz.questions?.length || 0 }}</span>
+          </div>
+        </div>
       </div>
 
       <div class="questions-section">

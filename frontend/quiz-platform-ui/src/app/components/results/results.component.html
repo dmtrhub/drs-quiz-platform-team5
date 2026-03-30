@@ -54,6 +54,12 @@
           <button class="btn btn-primary" (click)="viewLeaderboard(result.quiz_id, result.quiz_title)">
             View Leaderboard
           </button>
+          <button
+            class="btn btn-secondary"
+            [disabled]="downloadingReportId === (result._id?.$oid || result._id)"
+            (click)="downloadReport(result._id)">
+            {{ downloadingReportId === (result._id?.$oid || result._id) ? 'Downloading...' : 'Download PDF' }}
+          </button>
         </div>
       </div>
     </div>

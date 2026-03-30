@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { QuizService } from '../../services/quiz.service';
 import { WebSocketService } from '../../services/websocket.service';
+import { NotificationService } from '../../services/notification.service';
 import { Subscription } from 'rxjs';
 
 @Component({
@@ -26,7 +27,8 @@ export class QuizReviewComponent implements OnInit, OnDestroy {
 
   constructor(
     private quizService: QuizService,
-    private wsService: WebSocketService
+    private wsService: WebSocketService,
+    private notificationService: NotificationService
   ) {}
 
   ngOnInit(): void {
@@ -41,8 +43,7 @@ export class QuizReviewComponent implements OnInit, OnDestroy {
   subscribeToWebSocket(): void {
     this.wsSubscriptions.push(
       this.wsService.quizCreated$.subscribe({
-        next: (data: any) => {
-          console.log('QuizReview - New quiz notification received:', data);
+        next: () => {
           this.loadPendingQuizzes();
         }
       })
@@ -50,8 +51,7 @@ export class QuizReviewComponent implements OnInit, OnDestroy {
 
     this.wsSubscriptions.push(
       this.wsService.quizDeleted$.subscribe({
-        next: (data: any) => {
-          console.log('QuizReview - Quiz deleted notification received:', data);
+        next: () => {
           this.loadPendingQuizzes();
         }
       })
@@ -66,7 +66,7 @@ export class QuizReviewComponent implements OnInit, OnDestroy {
         this.isLoading = false;
       },
       error: (error) => {
-        this.errorMessage = error.error?.message || 'Failed to load pending quizzes';
+        this.errorMessage = error.error?.error || error.error?.message || 'Failed to load pending quizzes';
         this.isLoading = false;
       }
     });
@@ -95,7 +95,7 @@ export class QuizReviewComponent implements OnInit, OnDestroy {
         setTimeout(() => this.successMessage = '', 3000);
       },
       error: (error) => {
-        this.errorMessage = error.error?.message || 'Failed to approve quiz';
+        this.errorMessage = error.error?.error || error.error?.message || 'Failed to approve quiz';
       }
     });
   }
@@ -122,30 +122,51 @@ export class QuizReviewComponent implements OnInit, OnDestroy {
         setTimeout(() => this.successMessage = '', 3000);
       },
       error: (error) => {
-        this.errorMessage = error.error?.message || 'Failed to reject quiz';
+        this.errorMessage = error.error?.error || error.error?.message || 'Failed to reject quiz';
       }
     });
   }
 
   deleteQuiz(quizId: any): void {
-    if (!confirm('Are you sure you want to delete this quiz permanently?')) {
+    this.confirmAndDeleteQuiz(quizId);
+  }
+
+  private async confirmAndDeleteQuiz(quizId: any): Promise<void> {
+    const confirmed = await this.notificationService.confirm({
+      title: 'Delete Quiz',
+      message: 'Delete this pending quiz permanently?',
+      confirmText: 'Delete',
+      cancelText: 'Cancel',
+      variant: 'danger'
+    });
+
+    if (!confirmed) {
       return;
     }
 
     const id = quizId?.$oid || quizId;
+    if (!id) {
+      this.notificationService.error('Invalid quiz ID');
+      return;
+    }
 
     this.quizService.deleteQuiz(id).subscribe({
       next: () => {
         this.successMessage = 'Quiz deleted successfully!';
+        this.notificationService.success('Quiz deleted successfully');
         const selectedId = this.selectedQuiz?._id?.$oid || this.selectedQuiz?._id;
         if (selectedId === id) {
           this.closeQuizView();
         }
-        this.loadPendingQuizzes();
+        this.pendingQuizzes = this.pendingQuizzes.filter((quiz) => {
+          const currentId = quiz?._id?.$oid || quiz?._id;
+          return currentId !== id;
+        });
         setTimeout(() => this.successMessage = '', 3000);
       },
       error: (error) => {
-        this.errorMessage = error.error?.message || 'Failed to delete quiz';
+        this.errorMessage = error.error?.error || error.error?.message || 'Failed to delete quiz';
+        this.notificationService.error(this.errorMessage);
       }
     });
   }
@@ -156,5 +177,35 @@ export class QuizReviewComponent implements OnInit, OnDestroy {
       return new Date(createdAt.$date);
     }
        return new Date(createdAt);
+  }
+
+  getQuizId(quiz: any): string {
+    return quiz?._id?.$oid || quiz?._id || '';
+  }
+
+  isSelectedQuiz(quiz: any): boolean {
+    if (!this.selectedQuiz) {
+      return false;
+    }
+    return this.getQuizId(this.selectedQuiz) === this.getQuizId(quiz);
+  }
+
+  formatDuration(secondsValue: any): string {
+    const totalSeconds = Number(secondsValue || 0);
+    if (!Number.isFinite(totalSeconds) || totalSeconds <= 0) {
+      return '0 sec';
+    }
+
+    if (totalSeconds < 60) {
+      return `${totalSeconds} sec`;
+    }
+
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    if (seconds === 0) {
+      return `${minutes} min`;
+    }
+
+    return `${minutes} min ${seconds} sec`;
   }
 }

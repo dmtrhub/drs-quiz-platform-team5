@@ -23,7 +23,7 @@
         <strong>Questions:</strong> {{ quiz.questions?.length }}
       </div>
       <div class="info-item">
-        <strong>Time Limit:</strong> {{ quiz.duration_seconds }} seconds
+        <strong>Time Limit:</strong> {{ formatDuration(quiz.duration_seconds) }}
       </div>
       <div class="info-item">
         <strong>Created:</strong> {{ quiz.created_at?.$date ? (quiz.created_at.$date | date:'short') : (quiz.created_at | date:'short') }}
@@ -98,6 +98,7 @@
                 [name]="'question_' + i"
                 [value]="j"
                 [(ngModel)]="answers[i].answer_index"
+                (ngModelChange)="onAnswerChange()"
                 required>
               {{ answer.text }}
             </label>

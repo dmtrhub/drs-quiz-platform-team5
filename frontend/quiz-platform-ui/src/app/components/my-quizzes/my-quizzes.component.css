@@ -43,15 +43,38 @@
 
 .quizzes-list {
   display: grid;
-  gap: 20px;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: 18px;
 }
 
 .quiz-card {
-  background: white;
+  background: linear-gradient(180deg, #ffffff 0%, #f8faff 100%);
   border-radius: 8px;
   padding: 20px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-  border: 1px solid #e0e0e0;
+  box-shadow: 0 6px 16px rgba(31, 48, 99, 0.1);
+  border: 1px solid #d8e0f8;
+  position: relative;
+  overflow: hidden;
+}
+
+.quiz-card.clickable {
+  cursor: pointer;
+}
+
+.quiz-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, #667eea 0%, #7f9cff 100%);
+}
+
+.quiz-card.clickable:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 24px rgba(29, 46, 99, 0.16);
+  border-color: #cbd7fb;
 }
 
 .quiz-header {
@@ -94,9 +117,31 @@
   margin-bottom: 15px;
 }
 
-.quiz-info p {
-  margin: 8px 0;
-  color: #666;
+.quiz-info-grid {
+  display: grid;
+  gap: 8px;
+}
+
+.info-chip {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 9px 10px;
+  border: 1px solid #dbe3fa;
+  border-radius: 7px;
+  background: #fff;
+}
+
+.info-label {
+  font-size: 12px;
+  color: #5a668e;
+  font-weight: 600;
+}
+
+.info-value {
+  font-size: 13px;
+  color: #2d365a;
+  font-weight: 700;
 }
 
 .quiz-feedback {
@@ -132,17 +177,28 @@
 
 .quiz-actions {
   display: flex;
+  flex-wrap: wrap;
   gap: 10px;
-  margin-top: 15px;
-  padding-top: 15px;
-  border-top: 1px solid #e0e0e0;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #d9e2fb;
+}
+
+.card-open-hint {
+  margin-top: 10px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #7a89b6;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
 }
 
 .btn {
   padding: 10px 20px;
   border: none;
-  border-radius: 4px;
+  border-radius: 8px;
   font-size: 14px;
+  font-weight: 600;
   cursor: pointer;
   transition: all 0.2s;
 }
@@ -183,4 +239,10 @@
   font-size: 18px;
   color: #666;
   margin-bottom: 20px;
+}
+
+@media (max-width: 768px) {
+  .quizzes-list {
+    grid-template-columns: 1fr;
+  }
 }

@@ -1,6 +1,9 @@
 <div class="quiz-list-container">
   <div class="header-section">
-    <h2>Quiz Library</h2>
+    <div>
+      <h2>Quiz Library</h2>
+      <p class="header-subtitle" *ngIf="isPlayer()">Only quizzes that are ready to play are shown here.</p>
+    </div>
     <div class="actions">
       <button *ngIf="canCreateQuiz() && !canApprove()" class="btn btn-primary" (click)="createQuiz()">
         Create New Quiz
@@ -16,28 +19,67 @@
     {{ errorMessage }}
   </div>
 
-  <div class="quiz-grid" *ngIf="!isLoading && !errorMessage">
-    <div class="quiz-card" *ngFor="let quiz of filteredQuizzes" (click)="viewQuiz(quiz._id)">
+  <div
+    class="quiz-grid"
+    *ngIf="!isLoading && !errorMessage"
+    [class.player-view]="isPlayer()"
+    [class.admin-view]="!isPlayer()">
+    <div
+      class="quiz-card"
+      [class.player-card]="isPlayer()"
+      [class.admin-card]="!isPlayer()"
+      [class.clickable]="!isPlayer()"
+      *ngFor="let quiz of filteredQuizzes; trackBy: trackByQuizId"
+      (click)="onCardClick(quiz)">
       <div class="quiz-header">
-        <h3>{{ quiz.title }}</h3>
-        <span class="badge badge-{{ quiz.status.toLowerCase() }}">{{ quiz.status }}</span>
+        <h3 class="quiz-title">{{ quiz.title }}</h3>
+        <span *ngIf="!isPlayer() && !canApprove()" class="badge badge-{{ quiz.status.toLowerCase() }}">{{ quiz.status }}</span>
       </div>
 
-      <p class="quiz-description">{{ quiz.description }}</p>
+      <p class="quiz-description" *ngIf="quiz.description; else noDescription">{{ quiz.description }}</p>
+      <ng-template #noDescription>
+        <p class="quiz-description muted">No description provided for this quiz.</p>
+      </ng-template>
 
-      <div class="quiz-meta">
-        <span class="meta-item">
-          <strong>Author:</strong> {{ quiz.author_email || 'Unknown' }}
+      <div class="quiz-meta" *ngIf="isPlayer()">
+        <span class="meta-pill">
+          <span class="meta-label">Questions</span>
+          <span class="meta-value">{{ getQuestionCount(quiz) }}</span>
         </span>
-        <span class="meta-item">
-          <strong>Questions:</strong> {{ quiz.questions?.length || 0 }}
-        </span>
-        <span class="meta-item">
-          <strong>Time Limit:</strong> {{ quiz.duration_seconds }} seconds
+        <span class="meta-pill">
+          <span class="meta-label">Time Limit</span>
+          <span class="meta-value">{{ formatDurationForCard(quiz) }}</span>
         </span>
       </div>
 
-      <div class="quiz-actions" *ngIf="canApprove() && quiz.status === 'PENDING'">
+      <div class="quiz-info" *ngIf="!isPlayer()">
+        <div class="admin-meta-grid">
+          <div class="admin-meta-pill">
+            <span class="admin-meta-label">Author</span>
+            <span class="admin-meta-value">{{ quiz.author_email || 'Unknown' }}</span>
+          </div>
+          <div class="admin-meta-pill">
+            <span class="admin-meta-label">Questions</span>
+            <span class="admin-meta-value">{{ getQuestionCount(quiz) }}</span>
+          </div>
+          <div class="admin-meta-pill">
+            <span class="admin-meta-label">Time Limit</span>
+            <span class="admin-meta-value">{{ formatDurationForCard(quiz) }}</span>
+          </div>
+        </div>
+        <div class="card-open-hint">Click card to open quiz details</div>
+      </div>
+
+      <div class="quiz-actions player-actions" *ngIf="isPlayer()">
+        <button class="btn btn-start" (click)="startQuizFromCard(quiz, $event)">
+          Start Quiz
+        </button>
+        <button class="btn btn-leaderboard" (click)="openLeaderboardFromCard(quiz._id, $event)">
+          Leaderboard
+        </button>
+      </div>
+
+      <div class="quiz-actions admin-actions" *ngIf="canApprove() && quiz.status === 'PENDING'">
         <button class="btn btn-success btn-sm" (click)="approveQuiz(quiz._id, $event)">
           Approve
         </button>
@@ -46,7 +88,7 @@
         </button>
       </div>
 
-      <div class="quiz-actions" *ngIf="canApprove()">
+      <div class="quiz-actions admin-actions" *ngIf="canApprove()">
         <button class="btn btn-danger btn-sm" (click)="deleteQuiz(quiz._id, $event)">
           Delete
         </button>

@@ -14,3 +14,22 @@
     <span class="notification-message">{{ notification.message }}</span>
   </div>
 </div>
+
+<div class="confirm-overlay" *ngIf="confirmDialog" (click)="cancelAction()">
+  <div class="confirm-dialog" (click)="$event.stopPropagation()">
+    <h3 class="confirm-title">{{ confirmDialog?.title }}</h3>
+    <p class="confirm-message">{{ confirmDialog?.message }}</p>
+    <div class="confirm-actions">
+      <button class="btn btn-cancel" (click)="cancelAction()">
+        {{ confirmDialog?.cancelText }}
+      </button>
+      <button
+        class="btn"
+        [class.btn-danger]="confirmDialog?.variant === 'danger'"
+        [class.btn-primary]="confirmDialog?.variant !== 'danger'"
+        (click)="confirmAction()">
+        {{ confirmDialog?.confirmText }}
+      </button>
+    </div>
+  </div>
+</div>

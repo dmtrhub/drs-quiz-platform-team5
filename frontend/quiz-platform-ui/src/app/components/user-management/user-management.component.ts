@@ -93,10 +93,15 @@ export class UserManagementComponent implements OnInit {
       return;
     }
 
+    const requestedRole = this.selectedRole;
     this.userService.changeUserRole(userId, this.selectedRole).subscribe({
       next: (response) => {
-        this.successMessage = `Role changed to ${this.selectedRole} successfully. User has been notified via email.`;
-        this.loadUsers();
+        const updatedRole = response?.user?.role || requestedRole;
+        this.users = this.users.map((user) =>
+          user.id === userId ? { ...user, role: updatedRole } : user
+        );
+        this.applyFilters();
+        this.successMessage = `Role changed to ${updatedRole} successfully.`;
         this.editingUserId = null;
         this.selectedRole = '';
         setTimeout(() => this.successMessage = '', 5000);

@@ -2,12 +2,13 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
+import { environment } from '../../environments/environment';
 
 @Injectable({
   providedIn: 'root'
 })
 export class QuizService {
-    private apiUrl = '/api';
+  private apiUrl = environment.apiUrl;
 
     constructor(private http: HttpClient) {}
 
@@ -59,7 +60,7 @@ export class QuizService {
   }
 
   submitQuiz(quizId: string, answers: any[], timeSpent: number): Observable<any> {
-    return this.http.post(`${this.apiUrl}/results/submit?quiz_id=${quizId}`, {
+    return this.http.post(`${this.apiUrl}/quizzes/${quizId}/attempts`, {
       answers,
       time_spent_seconds: timeSpent 
     });
@@ -75,6 +76,12 @@ export class QuizService {
 
   createPdfReport(quizId: string): Observable<any> {  
     return this.http.post(`${this.apiUrl}/reports/quiz/${quizId}`, {});
+  }
+
+  downloadUserReport(resultId: string): Observable<Blob> {
+    return this.http.get(`${this.apiUrl}/reports/result/${resultId}`, {
+      responseType: 'blob'
+    });
   }
 
 }

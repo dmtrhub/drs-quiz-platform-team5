@@ -50,6 +50,12 @@ export class AppComponent implements OnInit, OnDestroy {
       })
     );
 
+    this.wsSubscriptions.push(
+      this.wsService.quizPublished$.subscribe((data: any) => {
+        this.notificationService.info(`New quiz available: "${data.title || 'Untitled'}"`);
+      })
+    );
+
     
     this.wsSubscriptions.push(
       this.wsService.quizApproved$.subscribe((data: any) => {

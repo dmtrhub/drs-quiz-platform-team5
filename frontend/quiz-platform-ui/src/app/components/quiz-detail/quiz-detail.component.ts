@@ -23,6 +23,8 @@ export class QuizDetailComponent implements OnInit {
   timerInterval: any;
   currentUser: any = null;
   isAdminView = false;
+  private shouldAutoStart = false;
+  private quizDeadlineMs: number | null = null;
 
   constructor(
     private route: ActivatedRoute,
@@ -39,6 +41,7 @@ export class QuizDetailComponent implements OnInit {
     });
 
     const quizId = this.route.snapshot.paramMap.get('id');
+    this.shouldAutoStart = this.route.snapshot.queryParamMap.get('autostart') === 'true';
     if (quizId) {
       this.loadQuiz(quizId);
     }
@@ -47,6 +50,10 @@ export class QuizDetailComponent implements OnInit {
   ngOnDestroy(): void {
     if (this.timerInterval) {
       clearInterval(this.timerInterval);
+    }
+
+    if (this.quizStarted && !this.quizSubmitted && !this.isAdminView) {
+      this.persistAttemptState();
     }
   }
 
@@ -68,8 +75,19 @@ export class QuizDetailComponent implements OnInit {
 
         if (!this.isAdminView) {
           this.initializeAnswers();
+          this.restoreAttemptState();
         }
         this.isLoading = false;
+
+        if (this.quizStarted && !this.isAdminView) {
+          if (this.timeRemaining <= 0) {
+            this.submitQuiz();
+            return;
+          }
+          this.startTimer();
+        } else if (this.shouldAutoStart && !this.isAdminView) {
+          this.startQuiz();
+        }
       },
       error: (error) => {
         this.errorMessage = 'Failed to load quiz. Please try again.';
@@ -86,17 +104,39 @@ export class QuizDetailComponent implements OnInit {
   }
 
   startQuiz(): void {
+    if (this.quizStarted || this.isAdminView || !this.quiz) {
+      return;
+    }
     this.quizStarted = true;
+    if (!this.quizDeadlineMs) {
+      this.quizDeadlineMs = Date.now() + (this.timeRemaining * 1000);
+    }
+    this.persistAttemptState();
     this.startTimer();
   }
 
   startTimer(): void {
+    if (this.timerInterval) {
+      clearInterval(this.timerInterval);
+    }
+
     this.timerInterval = setInterval(() => {
-      this.timeRemaining--;
+      if (this.quizDeadlineMs) {
+        this.timeRemaining = Math.max(0, Math.ceil((this.quizDeadlineMs - Date.now()) / 1000));
+      } else {
+        this.timeRemaining--;
+      }
+
+      this.persistAttemptState();
+
       if (this.timeRemaining <= 0) {
         this.submitQuiz();
       }
     }, 1000);
+  }
+
+  onAnswerChange(): void {
+    this.persistAttemptState();
   }
 
   formatTime(seconds: number): string {
@@ -105,12 +145,32 @@ export class QuizDetailComponent implements OnInit {
     return `${minutes}:${secs.toString().padStart(2, '0')}`;
   }
 
+  formatDuration(secondsValue: any): string {
+    const totalSeconds = Number(secondsValue || 0);
+    if (!Number.isFinite(totalSeconds) || totalSeconds <= 0) {
+      return '0 sec';
+    }
+
+    if (totalSeconds < 60) {
+      return `${totalSeconds} sec`;
+    }
+
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    if (seconds === 0) {
+      return `${minutes} min`;
+    }
+
+    return `${minutes} min ${seconds} sec`;
+  }
+
   submitQuiz(): void {
     if (this.timerInterval) {
       clearInterval(this.timerInterval);
     }
 
-    const timeSpent = (this.quiz.duration_seconds || this.quiz.time_limit) - this.timeRemaining;
+    const configuredDuration = this.quiz.duration_seconds || this.quiz.time_limit || 0;
+    const timeSpent = Math.max(configuredDuration - this.timeRemaining, 0);
     const quizId = this.quiz._id?.$oid || this.quiz._id;
 
     // Transform answers to match backend schema
@@ -138,14 +198,15 @@ export class QuizDetailComponent implements OnInit {
 
     this.quizService.submitQuiz(quizId, formattedAnswers, timeSpent).subscribe({
       next: () => {
+        this.clearAttemptState();
         this.quizSubmitted = true;
-        setTimeout(() => {
-          this.router.navigate(['/results']);
-        }, 3000);
+        this.router.navigate(['/results']);
       },
       error: (error) => {
-        this.errorMessage = 'Failed to submit quiz: ' + (error.error?.message || 'Unknown error');
-        this.startTimer();
+        this.errorMessage = 'Failed to submit quiz: ' + (error.error?.error || error.error?.message || 'Unknown error');
+        if (this.timeRemaining > 0) {
+          this.startTimer();
+        }
       }
     });
   }
@@ -156,6 +217,94 @@ export class QuizDetailComponent implements OnInit {
   }
 
   goBack(): void {
+    if (this.quizStarted && !this.quizSubmitted && !this.isAdminView) {
+      this.persistAttemptState();
+    }
     this.router.navigate(['/quizzes']);
+  }
+
+  private getCurrentQuizId(): string {
+    return this.quiz?._id?.$oid || this.quiz?._id || '';
+  }
+
+  private getAttemptStorageKey(quizId: string): string {
+    const userId = this.authService.getCurrentUser()?.id || 'anon';
+    return `quiz_attempt_${userId}_${quizId}`;
+  }
+
+  private persistAttemptState(): void {
+    if (this.isAdminView || !this.quiz || this.quizSubmitted) {
+      return;
+    }
+
+    const quizId = this.getCurrentQuizId();
+    if (!quizId) {
+      return;
+    }
+
+    const state = {
+      quizId,
+      quizStarted: this.quizStarted,
+      quizSubmitted: this.quizSubmitted,
+      timeRemaining: this.timeRemaining,
+      quizDeadlineMs: this.quizDeadlineMs,
+      answers: this.answers.map((answer) => ({
+        question_id: answer.question_id,
+        answer_index: answer.answer_index
+      }))
+    };
+
+    localStorage.setItem(this.getAttemptStorageKey(quizId), JSON.stringify(state));
+  }
+
+  private restoreAttemptState(): void {
+    if (!this.quiz || this.isAdminView) {
+      return;
+    }
+
+    const quizId = this.getCurrentQuizId();
+    if (!quizId) {
+      return;
+    }
+
+    const raw = localStorage.getItem(this.getAttemptStorageKey(quizId));
+    if (!raw) {
+      return;
+    }
+
+    try {
+      const state = JSON.parse(raw);
+      if (state?.quizId !== quizId) {
+        return;
+      }
+
+      if (Array.isArray(state.answers) && state.answers.length > 0) {
+        this.answers = this.quiz.questions.map((_: any, index: number) => ({
+          question_id: index,
+          answer_index: state.answers[index]?.answer_index ?? null
+        }));
+      }
+
+      this.quizStarted = !!state.quizStarted;
+      this.quizSubmitted = !!state.quizSubmitted;
+
+      if (typeof state.quizDeadlineMs === 'number') {
+        const restoredDeadlineMs = state.quizDeadlineMs;
+        this.quizDeadlineMs = restoredDeadlineMs;
+        this.timeRemaining = Math.max(0, Math.ceil((restoredDeadlineMs - Date.now()) / 1000));
+      } else if (typeof state.timeRemaining === 'number') {
+        this.timeRemaining = Math.max(0, state.timeRemaining);
+      }
+    } catch {
+      this.clearAttemptState();
+    }
+  }
+
+  private clearAttemptState(): void {
+    const quizId = this.getCurrentQuizId();
+    if (!quizId) {
+      return;
+    }
+    localStorage.removeItem(this.getAttemptStorageKey(quizId));
   }
 }

@@ -6,12 +6,31 @@ export interface Notification {
   type: 'success' | 'error' | 'info';
 }
 
+export interface ConfirmDialogOptions {
+  title: string;
+  message: string;
+  confirmText?: string;
+  cancelText?: string;
+  variant?: 'danger' | 'primary';
+}
+
+export interface ConfirmDialogRequest {
+  title: string;
+  message: string;
+  confirmText: string;
+  cancelText: string;
+  variant: 'danger' | 'primary';
+  resolve: (value: boolean) => void;
+}
+
 @Injectable({
   providedIn: 'root'
 })
 export class NotificationService {
   private notificationSubject = new Subject<Notification>();
+  private confirmDialogSubject = new Subject<ConfirmDialogRequest>();
   public notification$ = this.notificationSubject.asObservable();
+  public confirmDialog$ = this.confirmDialogSubject.asObservable();
 
   success(message: string): void {
     this.notificationSubject.next({ message, type: 'success' });
@@ -23,5 +42,18 @@ export class NotificationService {
 
   info(message: string): void {
     this.notificationSubject.next({ message, type: 'info' });
+  }
+
+  confirm(options: ConfirmDialogOptions): Promise<boolean> {
+    return new Promise((resolve) => {
+      this.confirmDialogSubject.next({
+        title: options.title,
+        message: options.message,
+        confirmText: options.confirmText || 'Confirm',
+        cancelText: options.cancelText || 'Cancel',
+        variant: options.variant || 'primary',
+        resolve
+      });
+    });
   }
 }

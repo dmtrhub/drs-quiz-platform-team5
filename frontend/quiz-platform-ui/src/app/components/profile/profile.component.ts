@@ -180,7 +180,6 @@ export class ProfileComponent implements OnInit {
         setTimeout(() => this.successMessage = '', 5000);
       },
       error: (error) => {
-        console.error('Profile update error:', error);
         this.errorMessage = error.error?.error || error.error?.errors || error.message || 'Failed to update profile. Please try again.';
         this.isLoading = false;
       }

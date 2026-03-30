@@ -1,6 +1,7 @@
 import { Routes } from '@angular/router';
 import { authGuard } from './guards/auth.guard';
 import { guestGuard } from './guards/guest.guard';
+import { moderatorGuard, adminGuard } from './guards/role.guard';
 import { LoginComponent } from './components/login/login.component';
 import { RegisterComponent } from './components/register/register.component';
 import { QuizListComponent } from './components/quiz-list/quiz-list.component';
@@ -19,15 +20,15 @@ export const routes: Routes = [
   { path: 'login', component: LoginComponent, canActivate: [guestGuard] },
   { path: 'register', component: RegisterComponent, canActivate: [guestGuard] },
   { path: 'quizzes', component: QuizListComponent, canActivate: [authGuard] },
-  { path: 'quiz/create', component: QuizFormComponent, canActivate: [authGuard] },
-  { path: 'quiz/edit/:id', component: QuizFormComponent, canActivate: [authGuard] },
-  { path: 'my-quizzes', component: MyQuizzesComponent, canActivate: [authGuard] },
+  { path: 'quiz/create', component: QuizFormComponent, canActivate: [authGuard, moderatorGuard] },
+  { path: 'quiz/edit/:id', component: QuizFormComponent, canActivate: [authGuard, moderatorGuard] },
+  { path: 'my-quizzes', component: MyQuizzesComponent, canActivate: [authGuard, moderatorGuard] },
   { path: 'quiz/:id', component: QuizDetailComponent, canActivate: [authGuard] },
   { path: 'results', component: ResultsComponent, canActivate: [authGuard] },
   { path: 'leaderboard', component: LeaderboardComponent, canActivate: [authGuard] },
   { path: 'leaderboard/:id', component: LeaderboardComponent, canActivate: [authGuard] },
-  { path: 'user-management', component: UserManagementComponent, canActivate: [authGuard] },
-  { path: 'quiz-review', component: QuizReviewComponent, canActivate: [authGuard] },
+  { path: 'user-management', component: UserManagementComponent, canActivate: [authGuard, adminGuard] },
+  { path: 'quiz-review', component: QuizReviewComponent, canActivate: [authGuard, adminGuard] },
   { path: 'profile', component: ProfileComponent, canActivate: [authGuard] },
   { path: '**', redirectTo: '/quizzes' }
 ];

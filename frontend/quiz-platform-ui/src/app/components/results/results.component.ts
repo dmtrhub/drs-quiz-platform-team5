@@ -14,6 +14,7 @@ export class ResultsComponent implements OnInit {
   results: any[] = [];
   isLoading = true;
   errorMessage = '';
+  downloadingReportId: string | null = null;
 
   constructor(
     private quizService: QuizService,
@@ -49,5 +50,30 @@ export class ResultsComponent implements OnInit {
 
   getPercentage(score: number, maxScore: number): number {
     return maxScore > 0 ? Math.round((score / maxScore) * 100) : 0;
+  }
+
+  downloadReport(resultId: any): void {
+    const id = resultId?.$oid || resultId;
+    if (!id) {
+      return;
+    }
+
+    this.downloadingReportId = id;
+
+    this.quizService.downloadUserReport(id).subscribe({
+      next: (blob) => {
+        const objectUrl = URL.createObjectURL(blob);
+        const anchor = document.createElement('a');
+        anchor.href = objectUrl;
+        anchor.download = `quiz_result_${id}.pdf`;
+        anchor.click();
+        URL.revokeObjectURL(objectUrl);
+        this.downloadingReportId = null;
+      },
+      error: (error) => {
+        this.errorMessage = error?.error?.error || 'Failed to download report';
+        this.downloadingReportId = null;
+      }
+    });
   }
 }

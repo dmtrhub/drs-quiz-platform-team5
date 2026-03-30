@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, BehaviorSubject } from 'rxjs';
 import { tap } from 'rxjs/operators';
+import { environment } from '../../environments/environment';
 
 export interface User {
   id: number;
@@ -21,7 +22,7 @@ export interface AuthResponse {
   providedIn: 'root'
 })
 export class AuthService {
-  private apiUrl = '/api';
+  private apiUrl = environment.apiUrl;
   private currentUserSubject = new BehaviorSubject<User | null>(null);
   public currentUser$ = this.currentUserSubject.asObservable();
 
@@ -50,9 +51,21 @@ export class AuthService {
   }
 
   logout(): void {
-    localStorage.removeItem('access_token');
-    localStorage.removeItem('user');
-    this.currentUserSubject.next(null);
+    const token = this.getToken();
+
+    // Clear client auth state immediately to avoid stale authorized calls.
+    this.clearSession();
+
+    if (token) {
+      this.http.post(`${this.apiUrl}/auth/logout`, {}, {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      }).subscribe({
+        next: () => {},
+        error: () => {}
+      });
+    }
   }
 
   getToken(): string | null {
@@ -88,6 +101,12 @@ export class AuthService {
   updateUserInStorage(user: User): void {
     localStorage.setItem('user', JSON.stringify(user));
     this.currentUserSubject.next(user);
+  }
+
+  private clearSession(): void {
+    localStorage.removeItem('access_token');
+    localStorage.removeItem('user');
+    this.currentUserSubject.next(null);
   }
 
   private getUserFromStorage(): User | null {
