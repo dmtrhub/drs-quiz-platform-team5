@@ -43,6 +43,41 @@ Quiz Platform Team
             return False
 
     @staticmethod
+    def send_registration_email_async(user_email, first_name, last_name, role):
+        app = current_app._get_current_object()
+
+        def _worker():
+            with app.app_context():
+                try:
+                    msg = Message(
+                        subject="Welcome to Quiz Platform!",
+                        recipients=[user_email],
+                        body=f"""
+Hello {first_name} {last_name},
+
+Welcome to Quiz Platform! Your account has been successfully created.
+
+Email: {user_email}
+Role: {role}
+
+You can now log in and start taking quizzes!
+
+Best regards,
+Quiz Platform Team
+                        """.strip()
+                    )
+
+                    if current_app.config.get('MAIL_SERVER'):
+                        mail.send(msg)
+                    else:
+                        print(f"[EMAIL] Registration email sent to {user_email}")
+                except Exception as e:
+                    print(f"[EMAIL ERROR] Failed to send registration email: {str(e)}")
+
+        Thread(target=_worker, daemon=True).start()
+        return True
+
+    @staticmethod
     def send_role_change_email(user, old_role, new_role):
         return EmailService._send_role_change_email_payload(
             user.email,

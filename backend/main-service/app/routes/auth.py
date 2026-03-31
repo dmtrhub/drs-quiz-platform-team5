@@ -32,7 +32,12 @@ def register():
             profile_image=data.get('profile_image')
         )
 
-        EmailService.send_registration_email(user)
+        EmailService.send_registration_email_async(
+            user_email=user.email,
+            first_name=user.first_name,
+            last_name=user.last_name,
+            role=user.role.value,
+        )
 
         response_data = auth_response_schema.dump({
             "message": "User registered successfully",
