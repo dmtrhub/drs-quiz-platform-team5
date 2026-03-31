@@ -11,11 +11,13 @@ WORKDIR /app
 
 COPY --from=builder /install /usr/local
 COPY . .
+RUN chmod +x /app/entrypoint.prod.sh
 
 EXPOSE 5000
 
 ENV PYTHONUNBUFFERED=1
 ENV FLASK_DEBUG=false
 ENV ALLOW_UNSAFE_WERKZEUG=false
+ENV RUN_SEEDS_ON_BOOT=false
 
-CMD ["sh", "-c", "python -m scripts.seed_admin && gunicorn --worker-class eventlet --workers 1 --bind 0.0.0.0:5000 run:app"]
+CMD ["/app/entrypoint.prod.sh"]
