@@ -108,20 +108,25 @@
   border-collapse: collapse;
 }
 
+.users-table th:last-child,
+.users-table td:last-child {
+  width: 210px;
+}
+
 .users-table thead {
   background: #f8f9fa;
 }
 
 .users-table th {
   text-align: left;
-  padding: 15px;
+  padding: 13px 12px;
   font-weight: 600;
   color: #333;
   border-bottom: 2px solid #e0e0e0;
 }
 
 .users-table td {
-  padding: 15px;
+  padding: 12px;
   border-bottom: 1px solid #f0f0f0;
   color: #555;
   vertical-align: middle;
@@ -134,9 +139,9 @@
 
 .badge {
   display: inline-block;
-  padding: 4px 12px;
+  padding: 3px 10px;
   border-radius: 20px;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 600;
   text-transform: uppercase;
 }
@@ -158,10 +163,20 @@
 
 .actions-cell {
   display: flex;
-  gap: 8px;
+  gap: 6px;
   align-items: center;
-  min-height: 32px;
+  min-height: 30px;
   flex-wrap: nowrap;
+  min-width: 194px;
+}
+
+.actions-cell .btn-sm {
+  height: 31px;
+  padding: 0 11px;
+  font-size: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .btn {
@@ -223,32 +238,32 @@
 .role-display {
   display: flex;
   align-items: center;
-  min-height: 32px;
+  min-height: 30px;
 }
 
 .role-cell {
-  min-width: 220px;
+  min-width: 190px;
   white-space: nowrap;
 }
 
 .role-edit {
   display: flex;
-  gap: 6px;
+  gap: 5px;
   align-items: center;
-  min-height: 32px;
+  min-height: 30px;
   flex-wrap: nowrap;
   white-space: nowrap;
 }
 
 .role-select {
-  padding: 6px 10px;
+  padding: 5px 8px;
   border: 2px solid #667eea;
   border-radius: 6px;
-  font-size: 13px;
+  font-size: 12px;
   background: white;
   cursor: pointer;
-  min-width: 130px;
-  height: 32px;
+  min-width: 118px;
+  height: 30px;
 }
 
 .role-select:focus {
@@ -257,8 +272,9 @@
 }
 
 .role-edit .btn-sm {
-  height: 32px;
+  height: 31px;
   padding: 0 10px;
+  font-size: 12px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -356,14 +372,15 @@
   }
 
   .table-container {
-    overflow-x: auto;
+    overflow: hidden;
   }
 
   .users-table {
-    min-width: 800px;
+    font-size: 13px;
   }
 
   .actions-cell {
-    flex-direction: column;
+    gap: 6px;
+    min-width: 190px;
   }
 }
