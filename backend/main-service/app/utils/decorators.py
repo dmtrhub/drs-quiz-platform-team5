@@ -1,6 +1,7 @@
 from functools import wraps
 from flask import request, jsonify, g
 from flask_jwt_extended import verify_jwt_in_request, get_jwt_identity, get_jwt
+from flask_jwt_extended.exceptions import JWTExtendedException
 from app.models.user import User
 
 
@@ -21,7 +22,7 @@ def token_required(func):
             g.user_role = jwt_data.get('role')
 
             return func(*args, **kwargs)
-        except Exception as e:
+        except (JWTExtendedException, ValueError, TypeError):
             return jsonify({"error": "Invalid or expired token"}), 401
 
     return wrapper
