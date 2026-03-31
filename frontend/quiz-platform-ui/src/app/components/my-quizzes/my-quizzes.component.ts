@@ -16,6 +16,8 @@ import { Subscription } from 'rxjs';
 })
 export class MyQuizzesComponent implements OnInit, OnDestroy {
   quizzes: any[] = [];
+  pageSize = 9;
+  currentPage = 1;
   isLoading = true;
   errorMessage = '';
   successMessage = '';
@@ -73,6 +75,7 @@ export class MyQuizzesComponent implements OnInit, OnDestroy {
     this.quizService.getMyQuizzes().subscribe({
       next: (data) => {
         this.quizzes = data;
+        this.currentPage = 1;
         this.isLoading = false;
       },
       error: (error) => {
@@ -136,6 +139,9 @@ export class MyQuizzesComponent implements OnInit, OnDestroy {
           const currentId = quiz?._id?.$oid || quiz?._id;
           return currentId !== id;
         });
+        if (this.currentPage > this.totalPages) {
+          this.currentPage = this.totalPages;
+        }
         this.successMessage = 'Quiz deleted successfully';
         this.notificationService.success('Quiz deleted successfully');
         setTimeout(() => this.successMessage = '', 2500);
@@ -192,5 +198,36 @@ export class MyQuizzesComponent implements OnInit, OnDestroy {
     }
 
     return `${minutes} min ${seconds} sec`;
+  }
+
+  get totalPages(): number {
+    const total = Math.ceil(this.quizzes.length / this.pageSize);
+    return Math.max(total, 1);
+  }
+
+  get paginatedQuizzes(): any[] {
+    const start = (this.currentPage - 1) * this.pageSize;
+    return this.quizzes.slice(start, start + this.pageSize);
+  }
+
+  get showPagination(): boolean {
+    return this.quizzes.length > this.pageSize;
+  }
+
+  get pageNumbers(): number[] {
+    return Array.from({ length: this.totalPages }, (_, index) => index + 1);
+  }
+
+  goToPage(page: number): void {
+    const safePage = Math.max(1, Math.min(page, this.totalPages));
+    this.currentPage = safePage;
+  }
+
+  nextPage(): void {
+    this.goToPage(this.currentPage + 1);
+  }
+
+  previousPage(): void {
+    this.goToPage(this.currentPage - 1);
   }
 }

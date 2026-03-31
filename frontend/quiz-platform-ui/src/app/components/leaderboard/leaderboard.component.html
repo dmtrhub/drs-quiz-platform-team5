@@ -44,10 +44,10 @@
           </tr>
         </thead>
         <tbody>
-          <tr *ngFor="let entry of leaderboard; let i = index">
+          <tr *ngFor="let entry of paginatedLeaderboard; let i = index">
             <td class="rank-cell">
-              <span class="rank-badge" [class.gold]="i === 0" [class.silver]="i === 1" [class.bronze]="i === 2">
-                {{ i + 1 }}
+              <span class="rank-badge" [class.gold]="getRank(i) === 1" [class.silver]="getRank(i) === 2" [class.bronze]="getRank(i) === 3">
+                {{ getRank(i) }}
               </span>
             </td>
             <td>{{ entry.user_name || entry.user_id }}</td>
@@ -59,6 +59,22 @@
           </tr>
         </tbody>
       </table>
+
+      <div class="pagination" *ngIf="showPagination">
+        <button type="button" class="btn btn-secondary" (click)="previousPage()" [disabled]="currentPage === 1">Previous</button>
+        <div class="pagination-numbers">
+          <button
+            type="button"
+            class="btn page-number-btn"
+            *ngFor="let page of pageNumbers"
+            [class.active]="page === currentPage"
+            (click)="goToPage(page)">
+            {{ page }}
+          </button>
+        </div>
+        <span class="pagination-info">Page {{ currentPage }} of {{ totalPages }}</span>
+        <button type="button" class="btn btn-secondary" (click)="nextPage()" [disabled]="currentPage === totalPages">Next</button>
+      </div>
 
       <div *ngIf="leaderboard.length === 0" class="empty-state">
         <p>No results yet for this quiz.</p>

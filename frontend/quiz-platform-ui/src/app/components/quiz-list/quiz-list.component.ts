@@ -17,6 +17,9 @@ import { Subscription } from 'rxjs';
 export class QuizListComponent implements OnInit, OnDestroy {
   quizzes: any[] = [];
   filteredQuizzes: any[] = [];
+  playerPageSize = 12;
+  adminPageSize = 9;
+  playerCurrentPage = 1;
   isLoading = true;
   errorMessage = '';
   currentUser: any = null;
@@ -109,6 +112,7 @@ export class QuizListComponent implements OnInit, OnDestroy {
       next: (quizzes) => {
         this.quizzes = quizzes;
         this.filteredQuizzes = quizzes;
+        this.playerCurrentPage = 1;
         this.isLoading = false;
       },
       error: (error) => {
@@ -126,6 +130,41 @@ export class QuizListComponent implements OnInit, OnDestroy {
   filterByStatus(status: string): void {
     this.filterStatus = status;
     this.loadQuizzes();
+  }
+
+  get totalPlayerPages(): number {
+    const total = Math.ceil(this.filteredQuizzes.length / this.currentPageSize);
+    return Math.max(total, 1);
+  }
+
+  get paginatedQuizzes(): any[] {
+    const start = (this.playerCurrentPage - 1) * this.currentPageSize;
+    return this.filteredQuizzes.slice(start, start + this.currentPageSize);
+  }
+
+  get showPlayerPagination(): boolean {
+    return this.filteredQuizzes.length > this.currentPageSize;
+  }
+
+  get playerPageNumbers(): number[] {
+    return Array.from({ length: this.totalPlayerPages }, (_, index) => index + 1);
+  }
+
+  get currentPageSize(): number {
+    return this.canApprove() ? this.adminPageSize : this.playerPageSize;
+  }
+
+  goToPlayerPage(page: number): void {
+    const safePage = Math.max(1, Math.min(page, this.totalPlayerPages));
+    this.playerCurrentPage = safePage;
+  }
+
+  nextPlayerPage(): void {
+    this.goToPlayerPage(this.playerCurrentPage + 1);
+  }
+
+  previousPlayerPage(): void {
+    this.goToPlayerPage(this.playerCurrentPage - 1);
   }
 
   canCreateQuiz(): boolean {
@@ -241,6 +280,9 @@ export class QuizListComponent implements OnInit, OnDestroy {
   private removeQuizFromLocalLists(quizId: string): void {
     this.quizzes = this.quizzes.filter((quiz) => this.normalizeQuizId(quiz._id) !== quizId);
     this.filteredQuizzes = this.filteredQuizzes.filter((quiz) => this.normalizeQuizId(quiz._id) !== quizId);
+    if (this.playerCurrentPage > this.totalPlayerPages) {
+      this.playerCurrentPage = this.totalPlayerPages;
+    }
   }
 
   async approveQuiz(quizId: any, event: Event): Promise<void> {

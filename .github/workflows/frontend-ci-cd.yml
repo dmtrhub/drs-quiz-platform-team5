@@ -46,7 +46,7 @@ jobs:
             ${{ env.IMAGE_NAME }}:latest
             ${{ env.IMAGE_NAME }}:${{ github.sha }}
 
-      - name: Trigger Render deployment (optional)
+      - name: Trigger Render deployment
         env:
           FRONTEND_RENDER_DEPLOY_HOOK: ${{ secrets.FRONTEND_RENDER_DEPLOY_HOOK }}
         run: |

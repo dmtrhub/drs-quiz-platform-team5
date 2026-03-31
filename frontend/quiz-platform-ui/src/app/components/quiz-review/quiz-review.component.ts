@@ -15,7 +15,10 @@ import { Subscription } from 'rxjs';
 })
 export class QuizReviewComponent implements OnInit, OnDestroy {
   pendingQuizzes: any[] = [];
+  pageSize = 9;
+  currentPage = 1;
   selectedQuiz: any = null;
+  reviewQuestionIndex = 0;
   isLoading = true;
   errorMessage = '';
   successMessage = '';
@@ -63,6 +66,7 @@ export class QuizReviewComponent implements OnInit, OnDestroy {
     this.quizService.getPendingQuizzes().subscribe({
       next: (data) => {
         this.pendingQuizzes = data;
+        this.currentPage = 1;
         this.isLoading = false;
       },
       error: (error) => {
@@ -74,11 +78,13 @@ export class QuizReviewComponent implements OnInit, OnDestroy {
 
   viewQuiz(quiz: any): void {
     this.selectedQuiz = quiz;
+    this.reviewQuestionIndex = 0;
     this.reviewForm.rejectionReason = '';
   }
 
   closeQuizView(): void {
     this.selectedQuiz = null;
+    this.reviewQuestionIndex = 0;
     this.reviewForm.rejectionReason = '';
   }
 
@@ -162,6 +168,9 @@ export class QuizReviewComponent implements OnInit, OnDestroy {
           const currentId = quiz?._id?.$oid || quiz?._id;
           return currentId !== id;
         });
+        if (this.currentPage > this.totalPages) {
+          this.currentPage = this.totalPages;
+        }
         setTimeout(() => this.successMessage = '', 3000);
       },
       error: (error) => {
@@ -207,5 +216,69 @@ export class QuizReviewComponent implements OnInit, OnDestroy {
     }
 
     return `${minutes} min ${seconds} sec`;
+  }
+
+  get totalReviewQuestions(): number {
+    return this.selectedQuiz?.questions?.length || 0;
+  }
+
+  get currentReviewQuestion(): any | null {
+    if (!this.selectedQuiz?.questions?.length) {
+      return null;
+    }
+    return this.selectedQuiz.questions[this.reviewQuestionIndex] ?? null;
+  }
+
+  get reviewProgressPercent(): number {
+    if (this.totalReviewQuestions === 0) {
+      return 0;
+    }
+    return ((this.reviewQuestionIndex + 1) / this.totalReviewQuestions) * 100;
+  }
+
+  goToReviewQuestion(index: number): void {
+    if (index < 0 || index >= this.totalReviewQuestions) {
+      return;
+    }
+    this.reviewQuestionIndex = index;
+  }
+
+  previousReviewQuestion(): void {
+    this.goToReviewQuestion(this.reviewQuestionIndex - 1);
+  }
+
+  nextReviewQuestion(): void {
+    this.goToReviewQuestion(this.reviewQuestionIndex + 1);
+  }
+
+  get totalPages(): number {
+    const total = Math.ceil(this.pendingQuizzes.length / this.pageSize);
+    return Math.max(total, 1);
+  }
+
+  get paginatedPendingQuizzes(): any[] {
+    const start = (this.currentPage - 1) * this.pageSize;
+    return this.pendingQuizzes.slice(start, start + this.pageSize);
+  }
+
+  get showPagination(): boolean {
+    return this.pendingQuizzes.length > this.pageSize;
+  }
+
+  get pageNumbers(): number[] {
+    return Array.from({ length: this.totalPages }, (_, index) => index + 1);
+  }
+
+  goToPage(page: number): void {
+    const safePage = Math.max(1, Math.min(page, this.totalPages));
+    this.currentPage = safePage;
+  }
+
+  nextPage(): void {
+    this.goToPage(this.currentPage + 1);
+  }
+
+  previousPage(): void {
+    this.goToPage(this.currentPage - 1);
   }
 }

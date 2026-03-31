@@ -29,7 +29,7 @@
       [class.player-card]="isPlayer()"
       [class.admin-card]="!isPlayer()"
       [class.clickable]="!isPlayer()"
-      *ngFor="let quiz of filteredQuizzes; trackBy: trackByQuizId"
+      *ngFor="let quiz of paginatedQuizzes; trackBy: trackByQuizId"
       (click)="onCardClick(quiz)">
       <div class="quiz-header">
         <h3 class="quiz-title">{{ quiz.title }}</h3>
@@ -101,5 +101,25 @@
         Create Your First Quiz
       </button>
     </div>
+  </div>
+
+  <div class="pagination" *ngIf="!isLoading && !errorMessage && showPlayerPagination">
+    <button type="button" class="btn btn-sm btn-secondary" (click)="previousPlayerPage()" [disabled]="playerCurrentPage === 1">
+      Previous
+    </button>
+    <div class="pagination-numbers">
+      <button
+        type="button"
+        class="btn btn-sm page-number-btn"
+        *ngFor="let page of playerPageNumbers"
+        [class.active]="page === playerCurrentPage"
+        (click)="goToPlayerPage(page)">
+        {{ page }}
+      </button>
+    </div>
+    <span class="pagination-info">Page {{ playerCurrentPage }} of {{ totalPlayerPages }}</span>
+    <button type="button" class="btn btn-sm btn-secondary" (click)="nextPlayerPage()" [disabled]="playerCurrentPage === totalPlayerPages">
+      Next
+    </button>
   </div>
 </div>

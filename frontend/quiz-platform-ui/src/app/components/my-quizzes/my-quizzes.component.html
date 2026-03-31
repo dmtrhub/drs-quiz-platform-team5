@@ -19,7 +19,7 @@
     <div
       class="quiz-card"
       [class.clickable]="isQuizOpenable(quiz)"
-      *ngFor="let quiz of quizzes"
+      *ngFor="let quiz of paginatedQuizzes"
       (click)="onQuizCardClick(quiz)">
       <div class="quiz-header">
         <h3>{{ quiz.title }}</h3>
@@ -70,6 +70,22 @@
 
       <div class="card-open-hint" *ngIf="isQuizOpenable(quiz)">Click card to open quiz details</div>
     </div>
+  </div>
+
+  <div class="pagination" *ngIf="!isLoading && showPagination">
+    <button type="button" class="btn btn-secondary" (click)="previousPage()" [disabled]="currentPage === 1">Previous</button>
+    <div class="pagination-numbers">
+      <button
+        type="button"
+        class="btn page-number-btn"
+        *ngFor="let page of pageNumbers"
+        [class.active]="page === currentPage"
+        (click)="goToPage(page)">
+        {{ page }}
+      </button>
+    </div>
+    <span class="pagination-info">Page {{ currentPage }} of {{ totalPages }}</span>
+    <button type="button" class="btn btn-secondary" (click)="nextPage()" [disabled]="currentPage === totalPages">Next</button>
   </div>
 
   <div class="empty-state" *ngIf="!isLoading && quizzes.length === 0">

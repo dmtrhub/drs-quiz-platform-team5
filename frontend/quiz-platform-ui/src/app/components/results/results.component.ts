@@ -12,6 +12,8 @@ import { QuizService } from '../../services/quiz.service';
 })
 export class ResultsComponent implements OnInit {
   results: any[] = [];
+  pageSize = 6;
+  currentPage = 1;
   isLoading = true;
   errorMessage = '';
   downloadingReportId: string | null = null;
@@ -32,6 +34,7 @@ export class ResultsComponent implements OnInit {
     this.quizService.getMyResults().subscribe({
       next: (response) => {
         this.results = response.results || [];
+        this.currentPage = 1;
         this.isLoading = false;
       },
       error: (error) => {
@@ -75,5 +78,36 @@ export class ResultsComponent implements OnInit {
         this.downloadingReportId = null;
       }
     });
+  }
+
+  get totalPages(): number {
+    const total = Math.ceil(this.results.length / this.pageSize);
+    return Math.max(total, 1);
+  }
+
+  get paginatedResults(): any[] {
+    const start = (this.currentPage - 1) * this.pageSize;
+    return this.results.slice(start, start + this.pageSize);
+  }
+
+  get showPagination(): boolean {
+    return this.results.length > this.pageSize;
+  }
+
+  get pageNumbers(): number[] {
+    return Array.from({ length: this.totalPages }, (_, index) => index + 1);
+  }
+
+  goToPage(page: number): void {
+    const safePage = Math.max(1, Math.min(page, this.totalPages));
+    this.currentPage = safePage;
+  }
+
+  nextPage(): void {
+    this.goToPage(this.currentPage + 1);
+  }
+
+  previousPage(): void {
+    this.goToPage(this.currentPage - 1);
   }
 }

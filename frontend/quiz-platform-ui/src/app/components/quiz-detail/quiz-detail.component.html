@@ -32,9 +32,28 @@
 
     <div class="questions-preview">
       <h3>Questions</h3>
-      <div class="question-item" *ngFor="let question of quiz.questions; let i = index">
+      <div class="solve-progress" *ngIf="totalQuestions > 0">
+        <div class="progress-meta">
+          <span>Question {{ previewQuestionIndex + 1 }} of {{ totalQuestions }}</span>
+        </div>
+        <div class="progress-track">
+          <div class="progress-fill" [style.width.%]="previewProgressPercent"></div>
+        </div>
+        <div class="question-stepper">
+          <button
+            type="button"
+            class="step-chip"
+            *ngFor="let question of quiz.questions; let i = index"
+            [class.active]="i === previewQuestionIndex"
+            (click)="goToPreviewQuestion(i)">
+            {{ i + 1 }}
+          </button>
+        </div>
+      </div>
+
+      <div class="question-item single-question" *ngIf="previewQuestion as question">
         <div class="question-header-preview">
-          <strong>Question {{ i + 1 }}:</strong> {{ question.text }}
+          <strong>Question {{ previewQuestionIndex + 1 }}:</strong> {{ question.text }}
         </div>
         <div class="question-points">Points: {{ question.points }}</div>
 
@@ -44,6 +63,15 @@
             <span class="answer-text">{{ answer.text }}</span>
           </div>
         </div>
+      </div>
+
+      <div class="question-nav" *ngIf="totalQuestions > 0">
+        <button type="button" class="btn btn-secondary" (click)="previousPreviewQuestion()" [disabled]="previewQuestionIndex === 0">
+          Back
+        </button>
+        <button type="button" class="btn btn-primary" (click)="nextPreviewQuestion()" [disabled]="previewQuestionIndex === totalQuestions - 1">
+          Next
+        </button>
       </div>
     </div>
 
@@ -81,10 +109,31 @@
       </div>
     </div>
 
+    <div class="solve-progress" *ngIf="totalQuestions > 0">
+      <div class="progress-meta">
+        <span>Question {{ currentQuestionIndex + 1 }} of {{ totalQuestions }}</span>
+        <span>{{ answeredCount }} / {{ totalQuestions }} answered</span>
+      </div>
+      <div class="progress-track">
+        <div class="progress-fill" [style.width.%]="questionProgressPercent"></div>
+      </div>
+      <div class="question-stepper">
+        <button
+          type="button"
+          class="step-chip"
+          *ngFor="let question of quiz.questions; let i = index"
+          [class.active]="i === currentQuestionIndex"
+          [class.answered]="isQuestionAnswered(i)"
+          (click)="goToQuestion(i)">
+          {{ i + 1 }}
+        </button>
+      </div>
+    </div>
+
     <form #quizForm="ngForm" (ngSubmit)="submitQuiz()">
-      <div class="question-container" *ngFor="let question of quiz.questions; let i = index">
+      <div class="question-container single-question" *ngIf="currentQuestion as question">
         <div class="question-header">
-          <h3>Question {{ i + 1 }}</h3>
+          <h3>Question {{ currentQuestionIndex + 1 }}</h3>
           <span class="points">{{ question.points }} points</span>
         </div>
 
@@ -92,23 +141,36 @@
 
         <div class="answer-section">
           <div class="radio-group">
-            <label *ngFor="let answer of question.answers; let j = index" class="radio-option">
+            <label *ngFor="let answer of question.answers; let j = index" class="radio-option" [class.selected]="getCurrentAnswerIndex() === j">
               <input
                 type="radio"
-                [name]="'question_' + i"
+                [name]="'question_' + currentQuestionIndex"
                 [value]="j"
-                [(ngModel)]="answers[i].answer_index"
-                (ngModelChange)="onAnswerChange()"
-                required>
+                [checked]="getCurrentAnswerIndex() === j"
+                (change)="setCurrentAnswer(j)">
               {{ answer.text }}
             </label>
           </div>
         </div>
       </div>
 
-      <div class="submit-section">
-        <button type="submit" class="btn btn-primary btn-lg">Submit Quiz</button>
+      <div class="question-nav" *ngIf="totalQuestions > 0">
+        <button type="button" class="btn btn-secondary" (click)="previousQuestion()" [disabled]="currentQuestionIndex === 0">
+          Back
+        </button>
+
+        <button type="button" class="btn btn-primary" *ngIf="!isLastQuestion" (click)="nextQuestion()">
+          Next
+        </button>
+
+        <button type="submit" class="btn btn-success" *ngIf="isLastQuestion" [disabled]="!allQuestionsAnswered">
+          Submit Quiz
+        </button>
       </div>
+
+      <p class="submit-hint" *ngIf="isLastQuestion && !allQuestionsAnswered">
+        Answer all questions to enable Submit.
+      </p>
     </form>
   </div>
 

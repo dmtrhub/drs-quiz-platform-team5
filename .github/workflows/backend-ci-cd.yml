@@ -60,7 +60,7 @@ jobs:
             ${{ env.IMAGE_NAME }}:latest
             ${{ env.IMAGE_NAME }}:${{ github.sha }}
 
-      - name: Trigger Render deployment for main-service (optional)
+      - name: Trigger Render deployment for main-service
         if: ${{ matrix.service_name == 'main-service' }}
         env:
           MAIN_SERVICE_RENDER_DEPLOY_HOOK: ${{ secrets.MAIN_SERVICE_RENDER_DEPLOY_HOOK }}
@@ -71,7 +71,7 @@ jobs:
             echo "MAIN_SERVICE_RENDER_DEPLOY_HOOK is not set. Skipping deploy trigger."
           fi
 
-      - name: Trigger Render deployment for quiz-service (optional)
+      - name: Trigger Render deployment for quiz-service
         if: ${{ matrix.service_name == 'quiz-service' }}
         env:
           QUIZ_SERVICE_RENDER_DEPLOY_HOOK: ${{ secrets.QUIZ_SERVICE_RENDER_DEPLOY_HOOK }}

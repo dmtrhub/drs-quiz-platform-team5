@@ -38,50 +38,101 @@
         <h3>Questions</h3>
       </div>
 
-      <div class="question-item" *ngFor="let question of quiz.questions; let i = index">
+      <div class="editor-progress" *ngIf="totalQuestions > 0">
+        <div class="progress-meta">
+          <span>Question {{ currentEditQuestionIndex + 1 }} of {{ totalQuestions }}</span>
+          <span>{{ completedQuestionsCount }} / {{ totalQuestions }} complete</span>
+        </div>
+        <div class="progress-track">
+          <div class="progress-fill" [style.width.%]="questionProgressPercent"></div>
+        </div>
+        <div class="question-stepper">
+          <button
+            type="button"
+            class="step-chip"
+            *ngFor="let question of quiz.questions; let i = index"
+            [class.active]="i === currentEditQuestionIndex"
+            [class.complete]="isQuestionComplete(question)"
+            (click)="goToQuestion(i)">
+            {{ i + 1 }}
+          </button>
+        </div>
+      </div>
+
+      <div class="question-item" *ngIf="currentEditQuestion as question">
         <div class="question-header">
-          <h4>Question {{ i + 1 }}</h4>
-          <button type="button" class="btn btn-danger btn-sm" (click)="removeQuestion(i)">Remove</button>
+          <h4>Question {{ currentEditQuestionIndex + 1 }}</h4>
+          <button
+            type="button"
+            class="btn btn-danger btn-sm"
+            (click)="removeQuestion(currentEditQuestionIndex)"
+            [disabled]="totalQuestions <= 1">
+            Remove
+          </button>
         </div>
 
         <div class="form-group">
           <label>Question Text *</label>
-          <input type="text" [(ngModel)]="question.text" [name]="'question_text_' + i" required class="form-control">
+          <input
+            type="text"
+            [(ngModel)]="question.text"
+            [name]="'question_text_' + currentEditQuestionIndex"
+            required
+            class="form-control">
         </div>
 
         <div class="form-group">
           <label>Points *</label>
-          <input type="number" [(ngModel)]="question.points" [name]="'question_points_' + i" required min="1" class="form-control">
+          <input
+            type="number"
+            [(ngModel)]="question.points"
+            [name]="'question_points_' + currentEditQuestionIndex"
+            required
+            min="1"
+            class="form-control">
         </div>
 
         <div class="answers-section">
           <label>Answer Options * (minimum 2 required, wrong answers auto-penalized)</label>
           <div *ngFor="let answer of question.answers; let j = index" class="answer-row">
-            <button type="button"
-                    class="correct-toggle-btn"
-                    [class.correct-active]="answer.correct"
-                    (click)="toggleCorrectAnswer(i, j)">
+            <button
+              type="button"
+              class="correct-toggle-btn"
+              [class.correct-active]="answer.correct"
+              (click)="toggleCorrectAnswer(currentEditQuestionIndex, j)">
               <span class="checkmark" *ngIf="answer.correct">✓</span>
               <span *ngIf="!answer.correct">○</span>
             </button>
-            <input type="text"
-                   [(ngModel)]="answer.text"
-                   [name]="'answer_' + i + '_' + j"
-                   required
-                   placeholder="Answer option"
-                   class="form-control answer-input">
-            <button type="button"
-                    class="btn btn-sm btn-danger"
-                    (click)="removeAnswer(i, j)"
-                    [disabled]="question.answers.length <= 2">
+            <input
+              type="text"
+              [(ngModel)]="answer.text"
+              [name]="'answer_' + currentEditQuestionIndex + '_' + j"
+              required
+              placeholder="Answer option"
+              class="form-control answer-input">
+            <button
+              type="button"
+              class="btn btn-sm btn-danger"
+              (click)="removeAnswer(currentEditQuestionIndex, j)"
+              [disabled]="question.answers.length <= 2">
               Remove
             </button>
           </div>
-          <button type="button" class="btn btn-sm btn-secondary" (click)="addAnswer(i)">Add Answer Option</button>
+          <button type="button" class="btn btn-sm btn-secondary" (click)="addAnswer(currentEditQuestionIndex)">Add Answer Option</button>
         </div>
       </div>
 
-      <button type="button" class="btn btn-secondary add-question-btn" (click)="addQuestion()">Add Question</button>
+      <div class="question-nav" *ngIf="totalQuestions > 0">
+        <button type="button" class="btn btn-secondary" (click)="previousQuestion()" [disabled]="currentEditQuestionIndex === 0">
+          Back
+        </button>
+
+        <button type="button" class="btn btn-secondary" (click)="addQuestion()">Add Question</button>
+
+        <button type="button" class="btn btn-primary" (click)="nextQuestion()" [disabled]="currentEditQuestionIndex === totalQuestions - 1">
+          Next
+        </button>
+      </div>
     </div>
 
     <div class="form-actions">

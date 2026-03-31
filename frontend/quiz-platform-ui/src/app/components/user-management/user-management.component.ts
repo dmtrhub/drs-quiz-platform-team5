@@ -14,6 +14,8 @@ import { AuthService } from '../../services/auth.service';
 export class UserManagementComponent implements OnInit {
   users: any[] = [];
   filteredUsers: any[] = [];
+  pageSize = 15;
+  currentPage = 1;
   isLoading = true;
   errorMessage = '';
   successMessage = '';
@@ -68,6 +70,7 @@ export class UserManagementComponent implements OnInit {
 
       return matchesSearch && matchesRole;
     });
+    this.currentPage = 1;
   }
 
   onSearchChange(): void {
@@ -148,5 +151,44 @@ export class UserManagementComponent implements OnInit {
       default:
         return 'badge-player';
     }
+  }
+
+  get totalPages(): number {
+    const total = Math.ceil(this.filteredUsers.length / this.pageSize);
+    return Math.max(total, 1);
+  }
+
+  get paginatedUsers(): any[] {
+    const start = (this.currentPage - 1) * this.pageSize;
+    return this.filteredUsers.slice(start, start + this.pageSize);
+  }
+
+  get showPagination(): boolean {
+    return this.filteredUsers.length > this.pageSize;
+  }
+
+  get currentPageCount(): number {
+    return this.paginatedUsers.length;
+  }
+
+  get pageNumbers(): number[] {
+    return Array.from({ length: this.totalPages }, (_, index) => index + 1);
+  }
+
+  goToPage(page: number): void {
+    const safePage = Math.max(1, Math.min(page, this.totalPages));
+    this.currentPage = safePage;
+  }
+
+  nextPage(): void {
+    this.goToPage(this.currentPage + 1);
+  }
+
+  previousPage(): void {
+    this.goToPage(this.currentPage - 1);
+  }
+
+  trackByUserId(index: number, user: any): number {
+    return user?.id ?? index;
   }
 }

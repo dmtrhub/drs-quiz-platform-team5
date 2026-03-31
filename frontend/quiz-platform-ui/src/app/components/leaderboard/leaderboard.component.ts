@@ -14,6 +14,8 @@ import { NotificationService } from '../../services/notification.service';
 })
 export class LeaderboardComponent implements OnInit {
   leaderboard: any[] = [];
+  pageSize = 10;
+  currentPage = 1;
   quizzes: any[] = [];
   quizId: string = '';
   selectedQuizId: string = '';
@@ -93,6 +95,7 @@ export class LeaderboardComponent implements OnInit {
     this.quizService.getLeaderboard(quizIdToLoad).subscribe({
       next: (response) => {
         this.leaderboard = response.leaderboard || [];
+        this.currentPage = 1;
         this.isLoading = false;
       },
       error: (error) => {
@@ -100,6 +103,41 @@ export class LeaderboardComponent implements OnInit {
         this.isLoading = false;
       }
     });
+  }
+
+  get totalPages(): number {
+    const total = Math.ceil(this.leaderboard.length / this.pageSize);
+    return Math.max(total, 1);
+  }
+
+  get paginatedLeaderboard(): any[] {
+    const start = (this.currentPage - 1) * this.pageSize;
+    return this.leaderboard.slice(start, start + this.pageSize);
+  }
+
+  get showPagination(): boolean {
+    return this.leaderboard.length > this.pageSize;
+  }
+
+  get pageNumbers(): number[] {
+    return Array.from({ length: this.totalPages }, (_, index) => index + 1);
+  }
+
+  goToPage(page: number): void {
+    const safePage = Math.max(1, Math.min(page, this.totalPages));
+    this.currentPage = safePage;
+  }
+
+  nextPage(): void {
+    this.goToPage(this.currentPage + 1);
+  }
+
+  previousPage(): void {
+    this.goToPage(this.currentPage - 1);
+  }
+
+  getRank(indexOnPage: number): number {
+    return (this.currentPage - 1) * this.pageSize + indexOnPage + 1;
   }
 
   isAdmin(): boolean {

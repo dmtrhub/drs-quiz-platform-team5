@@ -19,7 +19,7 @@
     Loading pending quizzes...
   </div>
 
-  <div class="content" *ngIf="!isLoading">
+  <div class="content" *ngIf="!isLoading" [class.blurred]="!!selectedQuiz">
     <div class="quizzes-list">
       <h3>Pending Quizzes</h3>
 
@@ -27,37 +27,59 @@
         <p>No quizzes pending review.</p>
       </div>
 
-      <div class="quiz-item" [class.selected]="isSelectedQuiz(quiz)" *ngFor="let quiz of pendingQuizzes">
-        <div class="quiz-summary">
-          <h4>{{ quiz.title }}</h4>
+      <div class="quiz-grid" *ngIf="pendingQuizzes.length > 0">
+        <div class="quiz-item" [class.selected]="isSelectedQuiz(quiz)" *ngFor="let quiz of paginatedPendingQuizzes">
+          <div class="quiz-summary">
+            <h4>{{ quiz.title }}</h4>
 
-          <div class="summary-grid">
-            <div class="summary-chip">
-              <span class="chip-label">Author</span>
-              <span class="chip-value">{{ quiz.author_email || 'Unknown' }}</span>
-            </div>
-            <div class="summary-chip">
-              <span class="chip-label">Questions</span>
-              <span class="chip-value">{{ quiz.questions?.length || 0 }}</span>
-            </div>
-            <div class="summary-chip">
-              <span class="chip-label">Time Limit</span>
-              <span class="chip-value">{{ formatDuration(quiz.duration_seconds) }}</span>
-            </div>
-            <div class="summary-chip">
-              <span class="chip-label">Submitted</span>
-              <span class="chip-value">{{ getCreatedDate(quiz.created_at) | date:'short' }}</span>
+            <div class="summary-grid">
+              <div class="summary-chip">
+                <span class="chip-label">Author</span>
+                <span class="chip-value">{{ quiz.author_email || 'Unknown' }}</span>
+              </div>
+              <div class="summary-chip">
+                <span class="chip-label">Questions</span>
+                <span class="chip-value">{{ quiz.questions?.length || 0 }}</span>
+              </div>
+              <div class="summary-chip">
+                <span class="chip-label">Time Limit</span>
+                <span class="chip-value">{{ formatDuration(quiz.duration_seconds) }}</span>
+              </div>
+              <div class="summary-chip">
+                <span class="chip-label">Submitted</span>
+                <span class="chip-value">{{ getCreatedDate(quiz.created_at) | date:'short' }}</span>
+              </div>
             </div>
           </div>
-        </div>
-        <div class="quiz-item-actions">
-          <button class="btn btn-primary btn-sm" (click)="viewQuiz(quiz)">Review</button>
-          <button class="btn btn-danger btn-sm" (click)="deleteQuiz(quiz._id)">Delete</button>
+          <div class="quiz-item-actions">
+            <button class="btn btn-primary btn-sm" (click)="viewQuiz(quiz)">Review</button>
+            <button class="btn btn-danger btn-sm" (click)="deleteQuiz(quiz._id)">Delete</button>
+          </div>
         </div>
       </div>
-    </div>
 
-    <div class="quiz-detail" *ngIf="selectedQuiz">
+      <div class="pagination" *ngIf="showPagination">
+        <button type="button" class="btn btn-secondary" (click)="previousPage()" [disabled]="currentPage === 1">Previous</button>
+        <div class="pagination-numbers">
+          <button
+            type="button"
+            class="btn page-number-btn"
+            *ngFor="let page of pageNumbers"
+            [class.active]="page === currentPage"
+            (click)="goToPage(page)">
+            {{ page }}
+          </button>
+        </div>
+        <span class="pagination-info">Page {{ currentPage }} of {{ totalPages }}</span>
+        <button type="button" class="btn btn-secondary" (click)="nextPage()" [disabled]="currentPage === totalPages">Next</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="review-modal-backdrop" *ngIf="selectedQuiz" (click)="closeQuizView()"></div>
+
+  <div class="review-modal" *ngIf="selectedQuiz" role="dialog" aria-modal="true" aria-label="Quiz review modal">
+    <div class="quiz-detail">
       <div class="detail-header">
         <h3>{{ selectedQuiz.title }}</h3>
         <button class="btn-close" (click)="closeQuizView()">×</button>
@@ -82,9 +104,28 @@
 
       <div class="questions-section">
         <h4>Questions</h4>
-        <div class="question-card" *ngFor="let question of selectedQuiz.questions; let i = index">
+        <div class="review-progress" *ngIf="totalReviewQuestions > 0">
+          <div class="progress-meta">
+            <span>Question {{ reviewQuestionIndex + 1 }} of {{ totalReviewQuestions }}</span>
+          </div>
+          <div class="progress-track">
+            <div class="progress-fill" [style.width.%]="reviewProgressPercent"></div>
+          </div>
+          <div class="question-stepper">
+            <button
+              type="button"
+              class="step-chip"
+              *ngFor="let question of selectedQuiz.questions; let i = index"
+              [class.active]="i === reviewQuestionIndex"
+              (click)="goToReviewQuestion(i)">
+              {{ i + 1 }}
+            </button>
+          </div>
+        </div>
+
+        <div class="question-card" *ngIf="currentReviewQuestion as question">
           <div class="question-header">
-            <strong>Question {{ i + 1 }}:</strong> {{ question.text }}
+            <strong>Question {{ reviewQuestionIndex + 1 }}:</strong> {{ question.text }}
           </div>
           <div class="question-points">Points: {{ question.points }}</div>
 
@@ -95,6 +136,15 @@
               {{ answer.text }}
             </div>
           </div>
+        </div>
+
+        <div class="question-nav" *ngIf="totalReviewQuestions > 0">
+          <button type="button" class="btn btn-secondary" (click)="previousReviewQuestion()" [disabled]="reviewQuestionIndex === 0">
+            Back
+          </button>
+          <button type="button" class="btn btn-primary" (click)="nextReviewQuestion()" [disabled]="reviewQuestionIndex === totalReviewQuestions - 1">
+            Next
+          </button>
         </div>
       </div>
 

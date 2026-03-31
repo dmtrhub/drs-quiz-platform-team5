@@ -70,7 +70,7 @@ export class QuizService {
     return this.http.get(`${this.apiUrl}/results/my-results`);
   }
 
-  getLeaderboard(quizId: string, limit: number = 10): Observable<any> { 
+  getLeaderboard(quizId: string, limit: number = 500): Observable<any> { 
     return this.http.get(`${this.apiUrl}/results/leaderboard/${quizId}?limit=${limit}`);
   }
 

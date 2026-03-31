@@ -15,6 +15,8 @@ import { AuthService } from '../../services/auth.service';
 export class QuizDetailComponent implements OnInit {
   quiz: any = null;
   answers: any[] = [];
+  currentQuestionIndex = 0;
+  previewQuestionIndex = 0;
   isLoading = true;
   errorMessage = '';
   quizStarted = false;
@@ -64,6 +66,7 @@ export class QuizDetailComponent implements OnInit {
     this.quizService.getQuizById(quizId).subscribe({
       next: (response) => {
         this.quiz = response.quiz || response;
+        this.previewQuestionIndex = 0;
         this.timeRemaining = this.quiz.duration_seconds || this.quiz.time_limit;
 
         // Check if moderator is viewing their own approved quiz (read-only mode)
@@ -81,7 +84,7 @@ export class QuizDetailComponent implements OnInit {
 
         if (this.quizStarted && !this.isAdminView) {
           if (this.timeRemaining <= 0) {
-            this.submitQuiz();
+            this.submitQuiz(true);
             return;
           }
           this.startTimer();
@@ -101,6 +104,7 @@ export class QuizDetailComponent implements OnInit {
       question_id: index,
       answer_index: null
     }));
+    this.currentQuestionIndex = 0;
   }
 
   startQuiz(): void {
@@ -130,13 +134,110 @@ export class QuizDetailComponent implements OnInit {
       this.persistAttemptState();
 
       if (this.timeRemaining <= 0) {
-        this.submitQuiz();
+        this.submitQuiz(true);
       }
     }, 1000);
   }
 
   onAnswerChange(): void {
     this.persistAttemptState();
+  }
+
+  get totalQuestions(): number {
+    return this.quiz?.questions?.length || 0;
+  }
+
+  get currentQuestion(): any | null {
+    if (!this.quiz?.questions?.length) {
+      return null;
+    }
+    return this.quiz.questions[this.currentQuestionIndex] ?? null;
+  }
+
+  get answeredCount(): number {
+    return this.answers.filter((answer) => answer.answer_index !== null && answer.answer_index !== undefined).length;
+  }
+
+  get allQuestionsAnswered(): boolean {
+    return this.totalQuestions > 0 && this.answeredCount === this.totalQuestions;
+  }
+
+  get isLastQuestion(): boolean {
+    return this.currentQuestionIndex >= this.totalQuestions - 1;
+  }
+
+  get questionProgressPercent(): number {
+    if (this.totalQuestions === 0) {
+      return 0;
+    }
+    return ((this.currentQuestionIndex + 1) / this.totalQuestions) * 100;
+  }
+
+  get previewQuestion(): any | null {
+    if (!this.quiz?.questions?.length) {
+      return null;
+    }
+    return this.quiz.questions[this.previewQuestionIndex] ?? null;
+  }
+
+  get previewProgressPercent(): number {
+    if (this.totalQuestions === 0) {
+      return 0;
+    }
+    return ((this.previewQuestionIndex + 1) / this.totalQuestions) * 100;
+  }
+
+  goToPreviewQuestion(index: number): void {
+    if (index < 0 || index >= this.totalQuestions) {
+      return;
+    }
+    this.previewQuestionIndex = index;
+  }
+
+  previousPreviewQuestion(): void {
+    this.goToPreviewQuestion(this.previewQuestionIndex - 1);
+  }
+
+  nextPreviewQuestion(): void {
+    this.goToPreviewQuestion(this.previewQuestionIndex + 1);
+  }
+
+  isQuestionAnswered(index: number): boolean {
+    const answer = this.answers[index];
+    return !!answer && answer.answer_index !== null && answer.answer_index !== undefined;
+  }
+
+  goToQuestion(index: number): void {
+    if (index < 0 || index >= this.totalQuestions) {
+      return;
+    }
+    this.currentQuestionIndex = index;
+    this.persistAttemptState();
+  }
+
+  nextQuestion(): void {
+    this.goToQuestion(this.currentQuestionIndex + 1);
+  }
+
+  previousQuestion(): void {
+    this.goToQuestion(this.currentQuestionIndex - 1);
+  }
+
+  getCurrentAnswerIndex(): number | null {
+    const current = this.answers[this.currentQuestionIndex];
+    if (!current) {
+      return null;
+    }
+    return current.answer_index;
+  }
+
+  setCurrentAnswer(answerIndex: number): void {
+    const current = this.answers[this.currentQuestionIndex];
+    if (!current) {
+      return;
+    }
+    current.answer_index = answerIndex;
+    this.onAnswerChange();
   }
 
   formatTime(seconds: number): string {
@@ -164,7 +265,12 @@ export class QuizDetailComponent implements OnInit {
     return `${minutes} min ${seconds} sec`;
   }
 
-  submitQuiz(): void {
+  submitQuiz(force = false): void {
+    if (!force && !this.allQuestionsAnswered) {
+      this.errorMessage = 'Please answer all questions before submitting.';
+      return;
+    }
+
     if (this.timerInterval) {
       clearInterval(this.timerInterval);
     }
@@ -246,6 +352,7 @@ export class QuizDetailComponent implements OnInit {
       quizId,
       quizStarted: this.quizStarted,
       quizSubmitted: this.quizSubmitted,
+      currentQuestionIndex: this.currentQuestionIndex,
       timeRemaining: this.timeRemaining,
       quizDeadlineMs: this.quizDeadlineMs,
       answers: this.answers.map((answer) => ({
@@ -287,6 +394,10 @@ export class QuizDetailComponent implements OnInit {
 
       this.quizStarted = !!state.quizStarted;
       this.quizSubmitted = !!state.quizSubmitted;
+
+      if (typeof state.currentQuestionIndex === 'number') {
+        this.currentQuestionIndex = Math.max(0, Math.min(state.currentQuestionIndex, this.totalQuestions - 1));
+      }
 
       if (typeof state.quizDeadlineMs === 'number') {
         const restoredDeadlineMs = state.quizDeadlineMs;

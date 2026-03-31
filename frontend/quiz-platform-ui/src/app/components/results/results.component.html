@@ -21,7 +21,7 @@
     </div>
 
     <div class="results-grid" *ngIf="results.length > 0">
-      <div class="result-card" *ngFor="let result of results">
+      <div class="result-card" *ngFor="let result of paginatedResults">
         <div class="card-header">
           <div class="score-circle" [class.high-score]="getPercentage(result.score, result.max_score) >= 80"
                                      [class.medium-score]="getPercentage(result.score, result.max_score) >= 50 && getPercentage(result.score, result.max_score) < 80"
@@ -62,6 +62,22 @@
           </button>
         </div>
       </div>
+    </div>
+
+    <div class="pagination" *ngIf="showPagination">
+      <button type="button" class="btn btn-secondary" (click)="previousPage()" [disabled]="currentPage === 1">Previous</button>
+      <div class="pagination-numbers">
+        <button
+          type="button"
+          class="btn page-number-btn"
+          *ngFor="let page of pageNumbers"
+          [class.active]="page === currentPage"
+          (click)="goToPage(page)">
+          {{ page }}
+        </button>
+      </div>
+      <span class="pagination-info">Page {{ currentPage }} of {{ totalPages }}</span>
+      <button type="button" class="btn btn-secondary" (click)="nextPage()" [disabled]="currentPage === totalPages">Next</button>
     </div>
   </div>
 </div>

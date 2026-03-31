@@ -18,6 +18,7 @@ export class QuizFormComponent implements OnInit {
     time_limit: 600,
     questions: [] as any[]
   };
+  currentEditQuestionIndex = 0;
 
   quizAuthor = '';
   errorMessage = '';
@@ -59,6 +60,11 @@ export class QuizFormComponent implements OnInit {
           time_limit: quizData.duration_seconds || quizData.time_limit,
           questions: quizData.questions || []
         };
+        if (this.quiz.questions.length === 0) {
+          this.addQuestion();
+        } else {
+          this.currentEditQuestionIndex = 0;
+        }
         this.isLoading = false;
       },
       error: (error) => {
@@ -77,6 +83,7 @@ export class QuizFormComponent implements OnInit {
         { text: '', correct: false }
       ]
     });
+    this.currentEditQuestionIndex = this.quiz.questions.length - 1;
   }
 
   calculatePenaltyPoints(question: any): number {
@@ -87,7 +94,64 @@ export class QuizFormComponent implements OnInit {
   }
 
   removeQuestion(index: number): void {
+    if (this.quiz.questions.length <= 1) {
+      return;
+    }
+
     this.quiz.questions.splice(index, 1);
+
+    if (this.currentEditQuestionIndex >= this.quiz.questions.length) {
+      this.currentEditQuestionIndex = this.quiz.questions.length - 1;
+    }
+  }
+
+  get totalQuestions(): number {
+    return this.quiz.questions.length;
+  }
+
+  get currentEditQuestion(): any | null {
+    if (this.totalQuestions === 0) {
+      return null;
+    }
+    return this.quiz.questions[this.currentEditQuestionIndex] ?? null;
+  }
+
+  get questionProgressPercent(): number {
+    if (this.totalQuestions === 0) {
+      return 0;
+    }
+    return ((this.currentEditQuestionIndex + 1) / this.totalQuestions) * 100;
+  }
+
+  isQuestionComplete(question: any): boolean {
+    if (!question?.text || !question?.points || !Array.isArray(question.answers) || question.answers.length < 2) {
+      return false;
+    }
+
+    if (question.answers.some((answer: any) => !answer?.text)) {
+      return false;
+    }
+
+    return question.answers.some((answer: any) => answer.correct);
+  }
+
+  get completedQuestionsCount(): number {
+    return this.quiz.questions.filter((question) => this.isQuestionComplete(question)).length;
+  }
+
+  goToQuestion(index: number): void {
+    if (index < 0 || index >= this.totalQuestions) {
+      return;
+    }
+    this.currentEditQuestionIndex = index;
+  }
+
+  previousQuestion(): void {
+    this.goToQuestion(this.currentEditQuestionIndex - 1);
+  }
+
+  nextQuestion(): void {
+    this.goToQuestion(this.currentEditQuestionIndex + 1);
   }
 
   addAnswer(questionIndex: number): void {

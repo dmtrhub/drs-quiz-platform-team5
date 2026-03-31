@@ -1,6 +1,7 @@
 import os
 import sys
 from pathlib import Path
+
 from dotenv import load_dotenv
 
 ROOT_DIR = Path(__file__).resolve().parent.parent
@@ -14,7 +15,7 @@ from app.models.user import User, RoleEnum
 from app.utils.password_utils import hash_password
 
 
-def seed_admin():
+def seed_admin() -> None:
     admin_email = os.environ.get('ADMIN_EMAIL', 'admin@quizplatform.com')
     admin_password = os.environ.get('ADMIN_PASSWORD')
     admin_first_name = os.environ.get('ADMIN_FIRST_NAME', 'System')
@@ -24,14 +25,13 @@ def seed_admin():
         raise RuntimeError('ADMIN_PASSWORD is required for admin seeding')
 
     existing = User.query.filter_by(email=admin_email).first()
-
     if existing:
         if existing.role != RoleEnum.ADMIN:
             existing.role = RoleEnum.ADMIN
             db.session.commit()
-            print(f"[SEED] Elevated existing user to ADMIN: {admin_email}")
+            print(f"[SEED ADMIN] Elevated existing user: {admin_email}")
         else:
-            print(f"[SEED] Admin already exists: {admin_email}")
+            print(f"[SEED ADMIN] Admin already exists: {admin_email}")
         return
 
     admin_user = User(
@@ -41,11 +41,9 @@ def seed_admin():
         last_name=admin_last_name,
         role=RoleEnum.ADMIN,
     )
-
     db.session.add(admin_user)
     db.session.commit()
-
-    print(f"[SEED] Created admin user: {admin_email}")
+    print(f"[SEED ADMIN] Created admin user: {admin_email}")
 
 
 if __name__ == '__main__':

@@ -39,7 +39,7 @@
       </div>
 
       <div class="user-count">
-        Showing {{ filteredUsers.length }} of {{ users.length }} users
+        Showing {{ currentPageCount }} of {{ filteredUsers.length }} users
       </div>
     </div>
 
@@ -58,11 +58,11 @@
           </tr>
         </thead>
         <tbody>
-          <tr *ngFor="let user of filteredUsers">
+          <tr *ngFor="let user of paginatedUsers; trackBy: trackByUserId">
             <td>{{ user.id }}</td>
             <td>{{ user.first_name }} {{ user.last_name }}</td>
             <td>{{ user.email }}</td>
-            <td>
+            <td class="role-cell">
               <div *ngIf="editingUserId !== user.id" class="role-display">
                 <span class="badge" [ngClass]="getRoleBadgeClass(user.role)">
                   {{ user.role }}
@@ -74,18 +74,27 @@
                   <option value="MODERATOR">MODERATOR</option>
                   <option value="ADMIN">ADMIN</option>
                 </select>
-                <button class="btn btn-sm btn-success" (click)="saveRoleChange(user.id)" title="Save">
-                  ✓
-                </button>
-                <button class="btn btn-sm btn-secondary" (click)="cancelEditingRole()" title="Cancel">
-                  ✕
-                </button>
               </div>
             </td>
             <td>{{ user.country || 'N/A' }}</td>
             <td>{{ user.created_at | date: 'MMM d, yyyy' }}</td>
             <td class="actions-cell">
               <button
+                type="button"
+                *ngIf="editingUserId === user.id"
+                class="btn btn-sm btn-success"
+                (click)="saveRoleChange(user.id)">
+                Save
+              </button>
+              <button
+                type="button"
+                *ngIf="editingUserId === user.id"
+                class="btn btn-sm btn-secondary"
+                (click)="cancelEditingRole()">
+                Cancel
+              </button>
+              <button
+                type="button"
                 *ngIf="editingUserId !== user.id"
                 class="btn btn-sm btn-primary"
                 (click)="changeRole(user.id, user.role)"
@@ -93,6 +102,7 @@
                 Change Role
               </button>
               <button
+                type="button"
                 *ngIf="editingUserId !== user.id"
                 class="btn btn-sm btn-danger"
                 (click)="deleteUser(user.id, user.first_name + ' ' + user.last_name)"
@@ -107,6 +117,22 @@
       <div *ngIf="filteredUsers.length === 0" class="no-users">
         <p>No users found matching your criteria.</p>
       </div>
+    </div>
+
+    <div class="pagination" *ngIf="showPagination">
+      <button type="button" class="btn btn-secondary" (click)="previousPage()" [disabled]="currentPage === 1">Previous</button>
+      <div class="pagination-numbers">
+        <button
+          type="button"
+          class="btn page-number-btn"
+          *ngFor="let page of pageNumbers"
+          [class.active]="page === currentPage"
+          (click)="goToPage(page)">
+          {{ page }}
+        </button>
+      </div>
+      <span class="pagination-info">Page {{ currentPage }} of {{ totalPages }}</span>
+      <button type="button" class="btn btn-secondary" (click)="nextPage()" [disabled]="currentPage === totalPages">Next</button>
     </div>
   </div>
 
