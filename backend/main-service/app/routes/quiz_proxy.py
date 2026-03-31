@@ -10,6 +10,7 @@ HOP_BY_HOP_HEADERS = {
     'connection', 'keep-alive', 'proxy-authenticate', 'proxy-authorization',
     'te', 'trailers', 'transfer-encoding', 'upgrade'
 }
+REWRITTEN_ENTITY_HEADERS = {'content-encoding', 'content-length'}
 
 def forward_request(path, method='GET', include_body=True, extra_params=None):
     url = f"{QUIZ_SERVICE_URL}{path}"
@@ -40,6 +41,7 @@ def forward_request(path, method='GET', include_body=True, extra_params=None):
         safe_headers = {
             k: v for k, v in response.headers.items()
             if k.lower() not in HOP_BY_HOP_HEADERS
+            and k.lower() not in REWRITTEN_ENTITY_HEADERS
         }
         return Response(response.content, status=response.status_code, headers=safe_headers)
 
