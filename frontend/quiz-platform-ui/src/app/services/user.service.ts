@@ -11,7 +11,7 @@ export class UserService {
   private apiUrl = environment.apiUrl;
   private inFlightRequests = new Map<string, Observable<any>>();
   private responseCache = new Map<string, { expiresAt: number; data: any }>();
-  private readonly cacheTtlMs = 5000;
+  private readonly cacheTtlMs = 10000;
 
   constructor(private http: HttpClient) {}
 

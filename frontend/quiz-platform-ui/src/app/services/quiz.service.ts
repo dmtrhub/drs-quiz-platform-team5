@@ -11,7 +11,7 @@ export class QuizService {
   private apiUrl = environment.apiUrl;
   private inFlightRequests = new Map<string, Observable<any>>();
   private responseCache = new Map<string, { expiresAt: number; data: any }>();
-  private readonly listCacheTtlMs = 5000;
+  private readonly listCacheTtlMs = 8000;
   private readonly maxRateLimitRetries = 1;
 
     constructor(private http: HttpClient) {}

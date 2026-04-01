@@ -24,6 +24,7 @@ export class ResultsComponent implements OnInit {
   private pollTimer: any = null;
   private readonly maxPollAttempts = 8;
   private readonly pollIntervalMs = 700;
+  private readonly initialLoadDelayMs = 120;
 
   constructor(
     private quizService: QuizService,
@@ -32,10 +33,9 @@ export class ResultsComponent implements OnInit {
 
   ngOnInit(): void {
     this.captureSubmissionState();
-    // Stagger component load to prevent request burst (429 rate limiting)
     setTimeout(() => {
       this.loadResults();
-    }, 600);
+    }, this.initialLoadDelayMs);
   }
 
   ngOnDestroy(): void {

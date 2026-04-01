@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { UserService } from '../../services/user.service';
 import { AuthService } from '../../services/auth.service';
+import { take } from 'rxjs/operators';
 
 @Component({
   selector: 'app-user-management',
@@ -24,6 +25,7 @@ export class UserManagementComponent implements OnInit {
   filterRole = 'ALL';
   editingUserId: number | null = null;
   selectedRole: string = '';
+  private readonly initialLoadDelayMs = 120;
 
   constructor(
     private userService: UserService,
@@ -31,13 +33,12 @@ export class UserManagementComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
-    this.authService.currentUser$.subscribe(user => {
+    this.authService.currentUser$.pipe(take(1)).subscribe(user => {
       this.currentUser = user;
       if (user && user.role === 'ADMIN') {
-        // Stagger component load to prevent request burst (429 rate limiting)
         setTimeout(() => {
           this.loadUsers();
-        }, 800);
+        }, this.initialLoadDelayMs);
       } else {
         this.errorMessage = 'Access denied. Admin privileges required.';
         this.isLoading = false;

@@ -6,10 +6,11 @@ import { mergeMap } from 'rxjs/operators';
 import { AuthService } from '../services/auth.service';
 import { NotificationService } from '../services/notification.service';
 import { WebSocketService } from '../services/websocket.service';
+import { environment } from '../../environments/environment';
 
-const DEFAULT_RATE_LIMIT_COOLDOWN_MS = 2000;
-const MAX_RATE_LIMIT_COOLDOWN_MS = 15000;
-const RATE_LIMIT_NOTICE_COOLDOWN_MS = 5000;
+const DEFAULT_RATE_LIMIT_COOLDOWN_MS = 900;
+const MAX_RATE_LIMIT_COOLDOWN_MS = 6000;
+const RATE_LIMIT_NOTICE_COOLDOWN_MS = 4000;
 
 let rateLimitBlockedUntilMs = 0;
 let lastRateLimitNoticeAtMs = 0;
@@ -38,9 +39,10 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
   const router = inject(Router);
   const notificationService = inject(NotificationService);  
   const wsService = inject(WebSocketService);
+  const isApiRequest = req.url.startsWith(environment.apiUrl) || req.url.includes('/api/');
 
   const waitMs = Math.max(0, rateLimitBlockedUntilMs - Date.now());
-  const request$ = waitMs > 0
+  const request$ = isApiRequest && waitMs > 0
     ? timer(waitMs).pipe(mergeMap(() => next(req)))
     : next(req);
 
@@ -62,9 +64,9 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
         }
       }
 
-      if (error.status === 429) {
+      if (isApiRequest && error.status === 429) {
         const cooldownMs = parseRetryAfterMs(error);
-        rateLimitBlockedUntilMs = Math.max(rateLimitBlockedUntilMs, Date.now() + cooldownMs);
+        rateLimitBlockedUntilMs = Date.now() + cooldownMs;
 
         const now = Date.now();
         if (now - lastRateLimitNoticeAtMs > RATE_LIMIT_NOTICE_COOLDOWN_MS) {

@@ -27,6 +27,7 @@ export class QuizListComponent implements OnInit, OnDestroy {
   private wsSubscriptions: Subscription[] = [];
   private liveReloadTimer: ReturnType<typeof setTimeout> | null = null;
   private readonly liveReloadDebounceMs = 250;
+  private readonly initialLoadDelayMs = 100;
 
   constructor(
     private quizService: QuizService,
@@ -47,10 +48,9 @@ export class QuizListComponent implements OnInit, OnDestroy {
       }
     });
     this.subscribeToWebSocket();
-    // Stagger component load to prevent request burst (429 rate limiting)
     setTimeout(() => {
       this.loadQuizzes();
-    }, 500);
+    }, this.initialLoadDelayMs);
   }
 
   ngOnDestroy(): void {

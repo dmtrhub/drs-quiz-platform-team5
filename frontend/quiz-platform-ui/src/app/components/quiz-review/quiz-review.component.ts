@@ -25,6 +25,7 @@ export class QuizReviewComponent implements OnInit, OnDestroy {
   private wsSubscriptions: Subscription[] = [];
   private liveReloadTimer: ReturnType<typeof setTimeout> | null = null;
   private readonly liveReloadDebounceMs = 300;
+  private readonly initialLoadDelayMs = 120;
 
   reviewForm = {
     rejectionReason: ''
@@ -37,10 +38,9 @@ export class QuizReviewComponent implements OnInit, OnDestroy {
   ) {}
 
   ngOnInit(): void {
-    // Stagger component load to prevent request burst (429 rate limiting)
     setTimeout(() => {
       this.loadPendingQuizzes();
-    }, 700);
+    }, this.initialLoadDelayMs);
     this.subscribeToWebSocket();
   }
 

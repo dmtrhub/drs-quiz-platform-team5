@@ -23,6 +23,8 @@ export class LeaderboardComponent implements OnInit {
   isLoadingQuizzes = true;
   errorMessage = '';
   showQuizFilter = false;
+  private readonly quizzesLoadDelayMs = 100;
+  private readonly leaderboardLoadDelayMs = 180;
 
   constructor(
     private route: ActivatedRoute,
@@ -42,20 +44,19 @@ export class LeaderboardComponent implements OnInit {
     
       this.selectedQuizId = state.preselectedQuizId;
       this.showQuizFilter = true;
-      // Stagger component load to prevent request burst (429 rate limiting)
-      setTimeout(() => this.loadQuizzes(), 300);
-      setTimeout(() => this.loadLeaderboard(), 400);
+      setTimeout(() => this.loadQuizzes(), this.quizzesLoadDelayMs);
+      setTimeout(() => this.loadLeaderboard(), this.leaderboardLoadDelayMs);
 
     } else if (this.quizId) {
 
       this.selectedQuizId = this.quizId;
       this.showQuizFilter = false;
-      setTimeout(() => this.loadLeaderboard(), 300);
+      setTimeout(() => this.loadLeaderboard(), this.quizzesLoadDelayMs);
 
     } else {
 
       this.showQuizFilter = true;
-      setTimeout(() => this.loadQuizzes(), 300);
+      setTimeout(() => this.loadQuizzes(), this.quizzesLoadDelayMs);
     }
   }
 
