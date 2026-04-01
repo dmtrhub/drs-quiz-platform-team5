@@ -22,6 +22,8 @@ export class MyQuizzesComponent implements OnInit, OnDestroy {
   errorMessage = '';
   successMessage = '';
   private wsSubscriptions: Subscription[] = [];
+  private liveReloadTimer: ReturnType<typeof setTimeout> | null = null;
+  private readonly liveReloadDebounceMs = 300;
 
   constructor(
     private quizService: QuizService,
@@ -41,6 +43,21 @@ export class MyQuizzesComponent implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.wsSubscriptions.forEach(sub => sub.unsubscribe());
+    if (this.liveReloadTimer) {
+      clearTimeout(this.liveReloadTimer);
+      this.liveReloadTimer = null;
+    }
+  }
+
+  private scheduleLiveReload(): void {
+    if (this.liveReloadTimer) {
+      clearTimeout(this.liveReloadTimer);
+    }
+
+    this.liveReloadTimer = setTimeout(() => {
+      this.liveReloadTimer = null;
+      this.loadMyQuizzes();
+    }, this.liveReloadDebounceMs);
   }
 
   subscribeToWebSocket(): void {
@@ -48,7 +65,7 @@ export class MyQuizzesComponent implements OnInit, OnDestroy {
     this.wsSubscriptions.push(
       this.wsService.quizApproved$.subscribe({
         next: () => {
-          this.loadMyQuizzes();
+          this.scheduleLiveReload();
         }
       })
     );
@@ -57,7 +74,7 @@ export class MyQuizzesComponent implements OnInit, OnDestroy {
     this.wsSubscriptions.push(
       this.wsService.quizRejected$.subscribe({
         next: () => {
-          this.loadMyQuizzes();
+          this.scheduleLiveReload();
         }
       })
     );
@@ -66,7 +83,7 @@ export class MyQuizzesComponent implements OnInit, OnDestroy {
     this.wsSubscriptions.push(
       this.wsService.quizDeleted$.subscribe({
         next: () => {
-          this.loadMyQuizzes();
+          this.scheduleLiveReload();
         }
       })
     );

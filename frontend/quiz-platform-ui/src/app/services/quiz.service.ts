@@ -11,8 +11,8 @@ export class QuizService {
   private apiUrl = environment.apiUrl;
   private inFlightRequests = new Map<string, Observable<any>>();
   private responseCache = new Map<string, { expiresAt: number; data: any }>();
-  private readonly listCacheTtlMs = 1200;
-  private readonly maxRateLimitRetries = 3;
+  private readonly listCacheTtlMs = 5000;
+  private readonly maxRateLimitRetries = 1;
 
     constructor(private http: HttpClient) {}
 
@@ -124,7 +124,7 @@ export class QuizService {
             return throwError(() => error);
           }
 
-          const delayMs = Math.min(2500, 400 * (2 ** Math.max(0, retryCount - 1)));
+          const delayMs = Math.min(4000, 800 * (2 ** Math.max(0, retryCount - 1)));
           return timer(delayMs);
         }
       }),

@@ -2,11 +2,36 @@ import { HttpInterceptorFn, HttpErrorResponse } from '@angular/common/http';
 import { inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { catchError, throwError, timer } from 'rxjs';
-import { retry, mergeMap } from 'rxjs/operators';
+import { mergeMap } from 'rxjs/operators';
 import { AuthService } from '../services/auth.service';
 import { NotificationService } from '../services/notification.service';
 import { WebSocketService } from '../services/websocket.service';
 
+const DEFAULT_RATE_LIMIT_COOLDOWN_MS = 2000;
+const MAX_RATE_LIMIT_COOLDOWN_MS = 15000;
+const RATE_LIMIT_NOTICE_COOLDOWN_MS = 5000;
+
+let rateLimitBlockedUntilMs = 0;
+let lastRateLimitNoticeAtMs = 0;
+
+function parseRetryAfterMs(error: HttpErrorResponse): number {
+  const retryAfterRaw = error.headers?.get('Retry-After');
+  if (!retryAfterRaw) {
+    return DEFAULT_RATE_LIMIT_COOLDOWN_MS;
+  }
+
+  const seconds = Number(retryAfterRaw);
+  if (Number.isFinite(seconds) && seconds > 0) {
+    return Math.min(MAX_RATE_LIMIT_COOLDOWN_MS, Math.floor(seconds * 1000));
+  }
+
+  const retryDateMs = Date.parse(retryAfterRaw);
+  if (Number.isFinite(retryDateMs)) {
+    return Math.min(MAX_RATE_LIMIT_COOLDOWN_MS, Math.max(0, retryDateMs - Date.now()));
+  }
+
+  return DEFAULT_RATE_LIMIT_COOLDOWN_MS;
+}
 
 export const errorInterceptor: HttpInterceptorFn = (req, next) => {
   const authService = inject(AuthService);
@@ -14,19 +39,12 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
   const notificationService = inject(NotificationService);  
   const wsService = inject(WebSocketService);
 
-  return next(req).pipe(
-    // Retry 429 responses with exponential backoff
-    retry({
-      count: 3,
-      delay: (error, retryCount) => {
-        if (error.status === 429) {
-          const delayMs = Math.pow(2, retryCount + 1) * 100; // 200ms, 400ms, 800ms
-          console.warn(`[HTTP 429] Rate limited. Retrying in ${delayMs}ms (attempt ${retryCount + 1}/3)`);
-          return timer(delayMs);
-        }
-        return throwError(() => error);
-      }
-    }),
+  const waitMs = Math.max(0, rateLimitBlockedUntilMs - Date.now());
+  const request$ = waitMs > 0
+    ? timer(waitMs).pipe(mergeMap(() => next(req)))
+    : next(req);
+
+  return request$.pipe(
     catchError((error: HttpErrorResponse) => {
       if (error.status === 401) {
         const isAuthRequest =
@@ -45,7 +63,14 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
       }
 
       if (error.status === 429) {
-        console.warn('[HTTP 429] Rate limit exceeded after retries');
+        const cooldownMs = parseRetryAfterMs(error);
+        rateLimitBlockedUntilMs = Math.max(rateLimitBlockedUntilMs, Date.now() + cooldownMs);
+
+        const now = Date.now();
+        if (now - lastRateLimitNoticeAtMs > RATE_LIMIT_NOTICE_COOLDOWN_MS) {
+          lastRateLimitNoticeAtMs = now;
+          console.warn(`[HTTP 429] Rate limited. Cooling down for ${cooldownMs}ms before next requests.`);
+        }
       }
 
       return throwError(() => error);

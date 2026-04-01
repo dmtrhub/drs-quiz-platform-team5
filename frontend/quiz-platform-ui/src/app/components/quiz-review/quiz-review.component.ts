@@ -23,6 +23,8 @@ export class QuizReviewComponent implements OnInit, OnDestroy {
   errorMessage = '';
   successMessage = '';
   private wsSubscriptions: Subscription[] = [];
+  private liveReloadTimer: ReturnType<typeof setTimeout> | null = null;
+  private readonly liveReloadDebounceMs = 300;
 
   reviewForm = {
     rejectionReason: ''
@@ -44,13 +46,28 @@ export class QuizReviewComponent implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.wsSubscriptions.forEach(sub => sub.unsubscribe());
+    if (this.liveReloadTimer) {
+      clearTimeout(this.liveReloadTimer);
+      this.liveReloadTimer = null;
+    }
+  }
+
+  private scheduleLiveReload(): void {
+    if (this.liveReloadTimer) {
+      clearTimeout(this.liveReloadTimer);
+    }
+
+    this.liveReloadTimer = setTimeout(() => {
+      this.liveReloadTimer = null;
+      this.loadPendingQuizzes();
+    }, this.liveReloadDebounceMs);
   }
 
   subscribeToWebSocket(): void {
     this.wsSubscriptions.push(
       this.wsService.quizCreated$.subscribe({
         next: () => {
-          this.loadPendingQuizzes();
+          this.scheduleLiveReload();
         }
       })
     );
@@ -58,7 +75,7 @@ export class QuizReviewComponent implements OnInit, OnDestroy {
     this.wsSubscriptions.push(
       this.wsService.quizDeleted$.subscribe({
         next: () => {
-          this.loadPendingQuizzes();
+          this.scheduleLiveReload();
         }
       })
     );

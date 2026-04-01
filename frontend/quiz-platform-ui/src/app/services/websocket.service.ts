@@ -29,10 +29,10 @@ export class WebSocketService {
       path: '/socket.io',
       transports: ['websocket'],
       reconnection: true,
-      reconnectionAttempts: 10,
-      reconnectionDelay: 2000,
-      reconnectionDelayMax: 10000,
-      timeout: 20000,
+      reconnectionAttempts: 3,
+      reconnectionDelay: 5000,
+      reconnectionDelayMax: 15000,
+      timeout: 12000,
       upgrade: false,
       forceNew: false,
       multiplex: true,
@@ -41,6 +41,10 @@ export class WebSocketService {
 
     this.socket.on('connect', () => {
       this.socket?.emit('authenticate', { token });
+    });
+
+    this.socket.on('connect_error', () => {
+      // Keep the app functional when websocket is unavailable in hosted environments.
     });
 
     this.socket.on('new_quiz_created', (data: any) => {

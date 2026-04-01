@@ -13,14 +13,14 @@ socketio = SocketIO()
 
 def _parse_allowed_origins(raw_origins):
     if not raw_origins:
-        return ["http://localhost", "http://127.0.0.1"]
+        return "*"
 
     raw = str(raw_origins).strip()
     if raw == "*":
         return "*"
 
     parsed = [origin.strip() for origin in raw.split(',') if origin.strip()]
-    return parsed or ["http://localhost", "http://127.0.0.1"]
+    return parsed or "*"
 
 def create_app():
     app = Flask(__name__)
