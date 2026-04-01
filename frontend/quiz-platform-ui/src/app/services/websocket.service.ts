@@ -27,11 +27,16 @@ export class WebSocketService {
     const socketUrl = window.location.origin;
     this.socket = io(socketUrl, {
       path: '/socket.io',
-      transports: ['polling', 'websocket'],
+      transports: ['websocket'],
       reconnection: true,
-      reconnectionAttempts: 5,
-      reconnectionDelay: 1000,
-      upgrade: true
+      reconnectionAttempts: 10,
+      reconnectionDelay: 2000,
+      reconnectionDelayMax: 10000,
+      timeout: 20000,
+      upgrade: false,
+      forceNew: false,
+      multiplex: true,
+      autoConnect: true
     });
 
     this.socket.on('connect', () => {
