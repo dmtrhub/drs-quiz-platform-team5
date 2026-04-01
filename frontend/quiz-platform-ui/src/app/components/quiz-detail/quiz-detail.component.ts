@@ -306,7 +306,12 @@ export class QuizDetailComponent implements OnInit {
       next: () => {
         this.clearAttemptState();
         this.quizSubmitted = true;
-        this.router.navigate(['/results']);
+        this.router.navigate(['/results'], {
+          state: {
+            justSubmittedQuizId: quizId,
+            submittedAtMs: Date.now()
+          }
+        });
       },
       error: (error) => {
         this.errorMessage = 'Failed to submit quiz: ' + (error.error?.error || error.error?.message || 'Unknown error');

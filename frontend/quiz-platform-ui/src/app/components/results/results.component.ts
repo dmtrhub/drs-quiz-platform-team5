@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { QuizService } from '../../services/quiz.service';
@@ -18,30 +18,141 @@ export class ResultsComponent implements OnInit {
   errorMessage = '';
   downloadingReportId: string | null = null;
 
+  private pendingSubmittedQuizId: string | null = null;
+  private pendingSubmittedAtMs: number | null = null;
+  private pollAttempts = 0;
+  private pollTimer: any = null;
+  private readonly maxPollAttempts = 8;
+  private readonly pollIntervalMs = 700;
+
   constructor(
     private quizService: QuizService,
     private router: Router
   ) {}
 
   ngOnInit(): void {
+    this.captureSubmissionState();
     this.loadResults();
   }
 
-  loadResults(): void {
-    this.isLoading = true;
+  ngOnDestroy(): void {
+    this.clearPollTimer();
+  }
+
+  loadResults(showLoader: boolean = true): void {
+    if (showLoader) {
+      this.isLoading = true;
+    }
     this.errorMessage = '';
 
     this.quizService.getMyResults().subscribe({
       next: (response) => {
         this.results = response.results || [];
-        this.currentPage = 1;
+        if (showLoader) {
+          this.currentPage = 1;
+        }
         this.isLoading = false;
+        this.handlePendingSubmissionPolling();
       },
       error: (error) => {
         this.errorMessage = 'Failed to load results';
         this.isLoading = false;
+        this.clearPollTimer();
       }
     });
+  }
+
+  private captureSubmissionState(): void {
+    const navigationState = this.router.getCurrentNavigation()?.extras?.state as any;
+    const historyState = history.state as any;
+
+    const submittedQuizId = navigationState?.justSubmittedQuizId || historyState?.justSubmittedQuizId;
+    const submittedAtMs = navigationState?.submittedAtMs || historyState?.submittedAtMs;
+
+    if (!submittedQuizId || !submittedAtMs) {
+      return;
+    }
+
+    this.pendingSubmittedQuizId = String(submittedQuizId);
+    this.pendingSubmittedAtMs = Number(submittedAtMs);
+    this.pollAttempts = 0;
+  }
+
+  private handlePendingSubmissionPolling(): void {
+    if (!this.pendingSubmittedQuizId || !this.pendingSubmittedAtMs) {
+      return;
+    }
+
+    if (this.hasNewlySubmittedResult()) {
+      this.pendingSubmittedQuizId = null;
+      this.pendingSubmittedAtMs = null;
+      this.clearPollTimer();
+      return;
+    }
+
+    if (this.pollAttempts >= this.maxPollAttempts) {
+      this.clearPollTimer();
+      return;
+    }
+
+    this.pollAttempts += 1;
+    this.clearPollTimer();
+    this.pollTimer = setTimeout(() => {
+      this.loadResults(false);
+    }, this.pollIntervalMs);
+  }
+
+  private hasNewlySubmittedResult(): boolean {
+    if (!this.pendingSubmittedQuizId || !this.pendingSubmittedAtMs) {
+      return true;
+    }
+
+    return this.results.some((result) => {
+      const resultQuizId = this.normalizeId(result?.quiz_id);
+      if (resultQuizId !== this.pendingSubmittedQuizId) {
+        return false;
+      }
+
+      const submittedAtMs = this.parseSubmittedAtMs(result?.submitted_at);
+      if (submittedAtMs === null) {
+        return false;
+      }
+
+      return submittedAtMs >= this.pendingSubmittedAtMs!;
+    });
+  }
+
+  private parseSubmittedAtMs(submittedAt: any): number | null {
+    if (!submittedAt) {
+      return null;
+    }
+
+    if (typeof submittedAt === 'string' || typeof submittedAt === 'number') {
+      const parsed = new Date(submittedAt).getTime();
+      return Number.isFinite(parsed) ? parsed : null;
+    }
+
+    if (submittedAt.$date) {
+      const parsed = new Date(submittedAt.$date).getTime();
+      return Number.isFinite(parsed) ? parsed : null;
+    }
+
+    return null;
+  }
+
+  private normalizeId(value: any): string {
+    if (!value) {
+      return '';
+    }
+    return String(value?.$oid || value);
+  }
+
+  private clearPollTimer(): void {
+    if (!this.pollTimer) {
+      return;
+    }
+    clearTimeout(this.pollTimer);
+    this.pollTimer = null;
   }
 
   viewLeaderboard(quizId: any, quizTitle: string): void {
