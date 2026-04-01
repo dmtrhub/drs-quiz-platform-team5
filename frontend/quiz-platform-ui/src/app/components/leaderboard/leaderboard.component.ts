@@ -42,19 +42,20 @@ export class LeaderboardComponent implements OnInit {
     
       this.selectedQuizId = state.preselectedQuizId;
       this.showQuizFilter = true;
-      this.loadQuizzes();
-      setTimeout(() => this.loadLeaderboard(), 100);
+      // Stagger component load to prevent request burst (429 rate limiting)
+      setTimeout(() => this.loadQuizzes(), 300);
+      setTimeout(() => this.loadLeaderboard(), 400);
 
     } else if (this.quizId) {
 
       this.selectedQuizId = this.quizId;
       this.showQuizFilter = false;
-      this.loadLeaderboard();
+      setTimeout(() => this.loadLeaderboard(), 300);
 
     } else {
 
       this.showQuizFilter = true;
-      this.loadQuizzes();
+      setTimeout(() => this.loadQuizzes(), 300);
     }
   }
 

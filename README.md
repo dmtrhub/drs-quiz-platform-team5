@@ -152,10 +152,10 @@ Both workflows:
 
 - trigger on push to `main` when matching paths change
 - build production images from `Dockerfile.prod`
-- push images to GHCR (`ghcr.io/<owner>/...`)
+- push images to GHCR (`ghcr.io/<dmtrhub>/...`)
 - can optionally trigger Render deploy hooks
 
-Optional secrets for deploy hooks:
+Secrets for deploy hooks:
 
 - `FRONTEND_RENDER_DEPLOY_HOOK`
 - `MAIN_SERVICE_RENDER_DEPLOY_HOOK`
@@ -163,8 +163,135 @@ Optional secrets for deploy hooks:
 
 Local Docker Compose is configured to use `Dockerfile.dev` variants for faster development iteration.
 
+## Production Deployment
+
+The project is deployed with managed cloud services and automated delivery from GitHub.
+
+### Infrastructure Setup
+
+- PostgreSQL is hosted on Neon.
+- MongoDB is hosted on MongoDB Atlas.
+- Redis is hosted on Render Key Value.
+- Application runtime is split into 4 Render services:
+- Frontend service (Angular + Nginx)
+- Main service (Flask)
+- Quiz service (Flask)
+- Redis (Render Key Value)
+
+### Deployment Flow
+
+1. A new commit is pushed to `main`.
+2. GitHub Actions builds production images with `Dockerfile.prod`.
+3. Images are pushed to GHCR.
+4. Render deploy hooks are triggered automatically.
+5. Render pulls the latest image and deploys updated service versions.
+
+### Service Links (Template)
+
+Replace placeholders below with your real links.
+
+- Frontend URL: `https://<your-frontend-service>.onrender.com`
+- Main Service URL: `https://<your-main-service>.onrender.com`
+- Quiz Service URL: `https://<your-quiz-service>.onrender.com`
+- GitHub Actions (repository): `https://github.com/<owner>/<repo>/actions`
+- GHCR package namespace: `https://github.com/<owner>?tab=packages`
+
+## Screenshots Guide (Template)
+
+Use this section to make the README reviewer-friendly and easy to verify.
+
+### 1. Architecture and Infrastructure
+
+Suggested screenshot: high-level architecture diagram (frontend, main, quiz, Neon, Atlas, Render Redis).
+
+```md
+![Architecture Overview](docs/images/architecture-overview.png)
+```
+
+Suggested screenshot: Render dashboard showing all 4 services.
+
+```md
+![Render Services](docs/images/render-services.png)
+```
+
+Suggested screenshot: Neon project/database overview.
+
+```md
+![Neon PostgreSQL](docs/images/neon-postgres.png)
+```
+
+Suggested screenshot: MongoDB Atlas cluster + database overview.
+
+```md
+![MongoDB Atlas](docs/images/mongodb-atlas.png)
+```
+
+### 2. CI/CD Pipeline
+
+Suggested screenshot: successful backend workflow run.
+
+```md
+![Backend CI/CD Success](docs/images/backend-workflow-success.png)
+```
+
+Suggested screenshot: successful frontend workflow run.
+
+```md
+![Frontend CI/CD Success](docs/images/frontend-workflow-success.png)
+```
+
+Suggested screenshot: workflow step that triggers Render deploy hook.
+
+```md
+![Render Deploy Hook Trigger](docs/images/render-hook-trigger.png)
+```
+
+### 3. Application Walkthrough
+
+Suggested screenshot: login page.
+
+```md
+![Login Page](docs/images/login-page.png)
+```
+
+Suggested screenshot: quiz list (player view).
+
+```md
+![Quiz List](docs/images/quiz-list.png)
+```
+
+Suggested screenshot: create quiz form.
+
+```md
+![Create Quiz](docs/images/create-quiz.png)
+```
+
+Suggested screenshot: quiz review page (moderator/admin).
+
+```md
+![Quiz Review](docs/images/quiz-review.png)
+```
+
+Suggested screenshot: leaderboard or results page.
+
+```md
+![Leaderboard](docs/images/leaderboard.png)
+```
+
+### 4. Verification Endpoints
+
+Suggested screenshot: `/health` response for main service.
+
+```md
+![Main Service Health](docs/images/main-health.png)
+```
+
+Suggested screenshot: `/health` response for quiz service.
+
+```md
+![Quiz Service Health](docs/images/quiz-health.png)
+```
+
 ## Current Gaps / Next Steps
 
 - Add a formal automated test suite (unit/integration/e2e).
-- Add CI pipeline for validation on pull requests.
-- Prepare production-grade deployment and scaling setup for WebSocket-heavy workloads.

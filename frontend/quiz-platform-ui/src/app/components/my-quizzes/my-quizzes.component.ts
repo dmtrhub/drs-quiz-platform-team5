@@ -32,7 +32,10 @@ export class MyQuizzesComponent implements OnInit, OnDestroy {
   ) {}
 
   ngOnInit(): void {
-    this.loadMyQuizzes();
+    // Stagger component load to prevent request burst (429 rate limiting)
+    setTimeout(() => {
+      this.loadMyQuizzes();
+    }, 300);
     this.subscribeToWebSocket();
   }
 

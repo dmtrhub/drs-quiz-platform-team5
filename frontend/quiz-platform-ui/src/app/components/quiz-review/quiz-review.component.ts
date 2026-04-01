@@ -35,7 +35,10 @@ export class QuizReviewComponent implements OnInit, OnDestroy {
   ) {}
 
   ngOnInit(): void {
-    this.loadPendingQuizzes();
+    // Stagger component load to prevent request burst (429 rate limiting)
+    setTimeout(() => {
+      this.loadPendingQuizzes();
+    }, 700);
     this.subscribeToWebSocket();
   }
 

@@ -32,7 +32,10 @@ export class ResultsComponent implements OnInit {
 
   ngOnInit(): void {
     this.captureSubmissionState();
-    this.loadResults();
+    // Stagger component load to prevent request burst (429 rate limiting)
+    setTimeout(() => {
+      this.loadResults();
+    }, 600);
   }
 
   ngOnDestroy(): void {

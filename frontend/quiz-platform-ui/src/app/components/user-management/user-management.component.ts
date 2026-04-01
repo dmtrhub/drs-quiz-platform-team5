@@ -34,7 +34,10 @@ export class UserManagementComponent implements OnInit {
     this.authService.currentUser$.subscribe(user => {
       this.currentUser = user;
       if (user && user.role === 'ADMIN') {
-        this.loadUsers();
+        // Stagger component load to prevent request burst (429 rate limiting)
+        setTimeout(() => {
+          this.loadUsers();
+        }, 800);
       } else {
         this.errorMessage = 'Access denied. Admin privileges required.';
         this.isLoading = false;
