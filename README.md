@@ -1,297 +1,129 @@
-# DRS Quiz Platform (Team 5)
+# DRS Quiz Platform
 
-A distributed quiz platform built as a university project for the Distributed Computer Systems course.
+Team project for the Distributed Computer Systems course. The goal was to build a small but realistic distributed platform with a client, two services, two databases, real-time events, and asynchronous processing. This repository contains the complete implementation plus automated CI/CD and cloud deployment (Render, Neon, Atlas) in addition to local Docker Compose.
 
-This repository contains the team project implementation, plus a follow-up stabilization pass with practical fixes and UX improvements.
+## System Overview
 
-## Project Goal
+- Client: Angular SPA that talks to the Main Service via REST and WebSocket.
+- Main Service (Flask): authentication, user management, role changes, and WebSocket event hub. Stores users in PostgreSQL.
+- Quiz Service (Flask): quiz CRUD, moderation workflow, result processing, leaderboard, and PDF reports. Stores quizzes and results in MongoDB.
+- Redis: login lockouts, token revocation, and leaderboard cache invalidation.
+- Internal service calls are protected with X-Internal-Token.
 
-The assignment was focused on designing and implementing a distributed system, not just a local CRUD app.
+## Requirements -> Implementation
 
-Main goals were:
+- Authentication: JWT login/logout, bcrypt password hashing, and temporary lockout after 3 failed attempts (Redis).
+- User management: full profile data, profile edits with image, admin role changes and deletions, email notification on role change.
+- Quiz lifecycle: moderators create quizzes, admins approve or reject with reason, players only see approved quizzes, moderators/admins can delete.
+- Time limits: server-side validation enforces quiz duration.
+- Async processing: quiz submissions are processed in background threads with a configurable delay to simulate long work.
+- Real-time updates: WebSocket events for quiz creation, approval, rejection, publishing, and deletion.
+- Reporting: PDF report generation for admins, delivered by email.
+- Validation and DTOs: Angular form validation on the client and Marshmallow schemas as DTOs on the server.
+- Data stores: PostgreSQL for users/auth (DB1) and MongoDB for quizzes/results (DB2).
+- ORM/ODM: SQLAlchemy for PostgreSQL and PyMongo for MongoDB.
 
-- service separation and clear responsibilities
-- SQL + NoSQL data model in one system
-- inter-service communication
-- asynchronous processing
-- real-time updates
+## Application Flow
 
-## What Was Built
-
-- Microservice-based architecture with separate Main and Quiz services.
-- Role-based access model (`PLAYER`, `MODERATOR`, `ADMIN`).
-- Quiz approval workflow (`PENDING`, `APPROVED`, `REJECTED`).
-- Real-time notifications using WebSockets.
-- Asynchronous result processing and email notifications.
-- Leaderboard and PDF reporting.
-- Containerized local environment with Docker Compose.
+1. Register -> receive confirmation -> login -> JWT issued.
+2. Moderator creates quiz -> Quiz Service saves -> Main Service notifies admin via WebSocket.
+3. Admin approves or rejects -> players see updates in real time.
+4. Player solves quiz -> server validates time -> async processing -> result stored -> email sent -> leaderboard updated.
+5. Admin generates report -> PDF created -> email delivered.
 
 ## Tech Stack
 
 - Frontend: Angular, TypeScript, RxJS
-- Backend: Python, Flask, Flask-SocketIO, Flask-JWT-Extended
-- Databases: PostgreSQL, MongoDB, Redis
-- Infrastructure: Docker, Docker Compose, Nginx
+- Backend: Python, Flask, Flask-JWT-Extended, Flask-SocketIO
+- Databases: PostgreSQL (Neon), MongoDB (Atlas), Redis (Render Key Value)
+- Infrastructure: Docker, Docker Compose, Nginx, Render
 - Reporting: ReportLab (PDF)
 
-## Architecture Overview
+## Local Development
 
-### Frontend (`frontend/quiz-platform-ui`)
-
-- Angular SPA
-- Authentication, profile, quiz browsing/solving, leaderboard, results, review screens
-- Nginx reverse proxy for API and WebSocket traffic
-
-### Main Service (`backend/main-service`)
-
-- User/auth domain (JWT, roles, profile management)
-- Redis-backed token revocation and login-attempt lockout
-- WebSocket event hub
-- Proxy layer toward Quiz Service
-
-### Quiz Service (`backend/quiz-service`)
-
-- Quiz CRUD and moderation status flow
-- Async submission processing
-- Leaderboard and PDF report generation
-
-### Data Stores
-
-- PostgreSQL for relational user/auth data
-- MongoDB for quiz/result domain
-- Redis for cache and security-related state
-
-## Security and Reliability
-
-- JWT authentication with token revocation on logout
-- Route-level role guards
-- Internal service protection via `X-Internal-Token`
-- Server-side validation on quiz submissions
-- Async processing to keep user-facing responses fast
-
-## Running Locally
-
-### Prerequisites
-
-- Docker
-- Docker Compose
-
-### Quick Reviewer Setup (2 Minutes)
-
-Before first start, create service env files from committed templates:
-
-1. Copy `backend/main-service/.env.example` to `backend/main-service/.env`
-2. Copy `backend/quiz-service/.env.example` to `backend/quiz-service/.env`
-
-Notes:
-
-- `.env` files are intentionally gitignored, so reviewers create them locally.
-- If you keep template values unchanged, default seeded admin password is `change-me-now`.
-
-### Start
-
-From project root:
+1. Copy env templates:
+   - backend/main-service/.env.example -> backend/main-service/.env
+   - backend/quiz-service/.env.example -> backend/quiz-service/.env
+2. Optional: copy root .env.example -> .env to override compose ports.
+3. Run the stack:
 
 ```bash
 docker compose up --build
 ```
 
-Services:
+Default services:
 
-- Frontend (dev): http://localhost:4200 (or `http://localhost:${FRONTEND_PORT}` if overridden in root `.env`)
+- Frontend: http://localhost:4200
 - Main Service: http://localhost:5000
 - Quiz Service: http://localhost:5001
 
-### Default Admin
+Default admin (seeded on Main Service boot):
 
-Main Service seeds/elevates an admin user on startup:
+- Email: admin@quizplatform.com
+- Password: value from ADMIN_PASSWORD in backend/main-service/.env
 
-- Email: `admin@quizplatform.com`
-- Password: value from `ADMIN_PASSWORD` in `backend/main-service/.env`
-- For quick local testing with unchanged template values: `change-me-now`
+## CI/CD and Deployment
 
-## Environment Configuration
+- GitHub Actions builds production Docker images for frontend and both backend services.
+- Images are pushed to GitHub Container Registry (GHCR).
+- Render deploy hooks pull and deploy the latest images automatically.
+- Production data stores run on Neon (PostgreSQL) and MongoDB Atlas.
 
-Service-level env files:
+## Screenshots
 
-- `backend/main-service/.env`
-- `backend/quiz-service/.env`
+### Authentication and Profile
 
-Templates:
+Login Screen
+![Login Screen](docs/login_screen.png)
 
-- `backend/main-service/.env.example`
-- `backend/quiz-service/.env.example`
+Register
+![Register](docs/register.png)
 
-For real email delivery, valid SMTP settings must be set in Main Service `.env`.
+Profile
+![Profile](docs/profile.png)
 
-## Multi-Computer Usage (Same Network)
+User Management
+![User Management](docs/user_management.png)
 
-Yes, multiple users can use the same running instance at the same time.
+### Quiz Management
 
-If the stack is running on one host machine, other devices on the same LAN can open:
+Quizzes Admin View
+![Quizzes Admin View](docs/quizzes_admin.png)
 
-- `http://<HOST_LOCAL_IP>`
+Creating Quiz
+![Creating Quiz](docs/creating_quiz.png)
 
-Notes:
+Quiz Review
+![Quiz Review](docs/quiz_review.png)
 
-- Do not use `localhost` from other devices.
-- Allow inbound access through the host firewall.
+Quiz Review Card
+![Quiz Review Card](docs/quiz_review_card.png)
 
-## Team Project Note
+### Player Experience
 
-This was developed as a team course project.
+Quizzes Player View
+![Quizzes Player View](docs/quizzes_player.png)
 
-## CI/CD Automation
+Solving Quiz
+![Solving Quiz](docs/solving_quiz.png)
 
-Repository now includes path-scoped GitHub Actions workflows:
+Results
+![Results](docs/results.png)
 
-- `.github/workflows/frontend-ci-cd.yml`
-- `.github/workflows/backend-ci-cd.yml`
+Leaderboard
+![Leaderboard](docs/leaderboard.png)
 
-Both workflows:
+### Infrastructure and Deployment
 
-- trigger on push to `main` when matching paths change
-- build production images from `Dockerfile.prod`
-- push images to GHCR (`ghcr.io/<dmtrhub>/...`)
-- can optionally trigger Render deploy hooks
+Neon PostgreSQL
+![Neon PostgreSQL](docs/neon.png)
 
-Secrets for deploy hooks:
+MongoDB Atlas
+![MongoDB Atlas](docs/mongoDB.png)
 
-- `FRONTEND_RENDER_DEPLOY_HOOK`
-- `MAIN_SERVICE_RENDER_DEPLOY_HOOK`
-- `QUIZ_SERVICE_RENDER_DEPLOY_HOOK`
+Render Deployment
+![Render Deployment](docs/render.png)
 
-Local Docker Compose is configured to use `Dockerfile.dev` variants for faster development iteration.
+## License
 
-## Production Deployment
-
-The project is deployed with managed cloud services and automated delivery from GitHub.
-
-### Infrastructure Setup
-
-- PostgreSQL is hosted on Neon.
-- MongoDB is hosted on MongoDB Atlas.
-- Redis is hosted on Render Key Value.
-- Application runtime is split into 4 Render services:
-- Frontend service (Angular + Nginx)
-- Main service (Flask)
-- Quiz service (Flask)
-- Redis (Render Key Value)
-
-### Deployment Flow
-
-1. A new commit is pushed to `main`.
-2. GitHub Actions builds production images with `Dockerfile.prod`.
-3. Images are pushed to GHCR.
-4. Render deploy hooks are triggered automatically.
-5. Render pulls the latest image and deploys updated service versions.
-
-### Service Links (Template)
-
-Replace placeholders below with your real links.
-
-- Frontend URL: `https://<your-frontend-service>.onrender.com`
-- Main Service URL: `https://<your-main-service>.onrender.com`
-- Quiz Service URL: `https://<your-quiz-service>.onrender.com`
-- GitHub Actions (repository): `https://github.com/<owner>/<repo>/actions`
-- GHCR package namespace: `https://github.com/<owner>?tab=packages`
-
-## Screenshots Guide (Template)
-
-Use this section to make the README reviewer-friendly and easy to verify.
-
-### 1. Architecture and Infrastructure
-
-Suggested screenshot: high-level architecture diagram (frontend, main, quiz, Neon, Atlas, Render Redis).
-
-```md
-![Architecture Overview](docs/images/architecture-overview.png)
-```
-
-Suggested screenshot: Render dashboard showing all 4 services.
-
-```md
-![Render Services](docs/images/render-services.png)
-```
-
-Suggested screenshot: Neon project/database overview.
-
-```md
-![Neon PostgreSQL](docs/images/neon-postgres.png)
-```
-
-Suggested screenshot: MongoDB Atlas cluster + database overview.
-
-```md
-![MongoDB Atlas](docs/images/mongodb-atlas.png)
-```
-
-### 2. CI/CD Pipeline
-
-Suggested screenshot: successful backend workflow run.
-
-```md
-![Backend CI/CD Success](docs/images/backend-workflow-success.png)
-```
-
-Suggested screenshot: successful frontend workflow run.
-
-```md
-![Frontend CI/CD Success](docs/images/frontend-workflow-success.png)
-```
-
-Suggested screenshot: workflow step that triggers Render deploy hook.
-
-```md
-![Render Deploy Hook Trigger](docs/images/render-hook-trigger.png)
-```
-
-### 3. Application Walkthrough
-
-Suggested screenshot: login page.
-
-```md
-![Login Page](docs/images/login-page.png)
-```
-
-Suggested screenshot: quiz list (player view).
-
-```md
-![Quiz List](docs/images/quiz-list.png)
-```
-
-Suggested screenshot: create quiz form.
-
-```md
-![Create Quiz](docs/images/create-quiz.png)
-```
-
-Suggested screenshot: quiz review page (moderator/admin).
-
-```md
-![Quiz Review](docs/images/quiz-review.png)
-```
-
-Suggested screenshot: leaderboard or results page.
-
-```md
-![Leaderboard](docs/images/leaderboard.png)
-```
-
-### 4. Verification Endpoints
-
-Suggested screenshot: `/health` response for main service.
-
-```md
-![Main Service Health](docs/images/main-health.png)
-```
-
-Suggested screenshot: `/health` response for quiz service.
-
-```md
-![Quiz Service Health](docs/images/quiz-health.png)
-```
-
-## Current Gaps / Next Steps
-
-- Add a formal automated test suite (unit/integration/e2e).
+MIT. See LICENSE.

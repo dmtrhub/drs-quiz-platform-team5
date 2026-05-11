@@ -21,4 +21,7 @@ else
   echo "[BOOT] RUN_SEEDS_ON_BOOT disabled. Skipping quiz seed scripts."
 fi
 
-exec gunicorn --workers 2 --bind 0.0.0.0:5001 run:app
+WORKERS="${WEB_CONCURRENCY:-2}"
+PORT_TO_BIND="${PORT:-5001}"
+
+exec gunicorn --workers "$WORKERS" --bind "0.0.0.0:${PORT_TO_BIND}" run:app
